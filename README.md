@@ -74,3 +74,27 @@ Create a `.env` file in the root with your Supabase credentials:
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
+
+---
+
+## 👤 Author
+
+**Md. Hasibul Hasan**
+
+🎓 BSc in Computer Science & Engineering  
+🏫 Green University of Bangladesh  
+
+🚀 Interests:
+- Web Development
+- Artificial Intelligence
+- Machine Learning
+- Software Engineering
+
+🌐 Portfolio:  
+https://hasib61714.github.io/hasibul-portfolio-v5/
+
+📫 Connect with me:
+- GitHub: https://github.com/hasib61714
+- LinkedIn: https://www.linkedin.com/in/md-hasibul-hasan-10749537a/
+
+---
