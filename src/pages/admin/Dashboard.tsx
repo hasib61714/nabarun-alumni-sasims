@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
   Users, Search, LogOut, CheckCircle, XCircle, Download, BarChart3, Trash2, Home, Clock, Eye,
-  Bell, Plus, Mail, MailOpen, MessageSquare, Send, Megaphone, Image as ImageIcon, Upload, CalendarDays, MapPin, HandCoins, Target, MessageSquareQuote
+  Bell, Plus, Mail, MailOpen, MessageSquare, Send, Megaphone, Image as ImageIcon, Upload, CalendarDays, MapPin, HandCoins, Target, MessageSquareQuote, Crown
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import nabarunLogo from "@/assets/nabarun-logo.png";
@@ -125,6 +125,7 @@ interface CampaignRow {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -170,8 +171,11 @@ export default function AdminDashboard() {
   const checkAdmin = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/login"); return; }
-    const { data } = await supabase.rpc("has_role", { _user_id: session.user.id, _role: "admin" });
-    if (!data) { toast.error("অ্যাক্সেস প্রত্যাখ্যাত"); navigate("/dashboard"); }
+    const uid = session.user.id;
+    const { data } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" });
+    if (!data) { toast.error("অ্যাক্সেস প্রত্যাখ্যাত"); navigate("/dashboard"); return; }
+    const { data: superData } = await supabase.rpc("has_role", { _user_id: uid, _role: "super_admin" });
+    setIsSuperAdmin(!!superData);
   };
 
   const loadAll = () => { loadStudents(); loadMessages(); loadNotices(); loadGallery(); loadEvents(); loadDonations(); loadTestimonials(); };
@@ -466,6 +470,11 @@ export default function AdminDashboard() {
             <span className="hidden sm:inline">অ্যাডমিন ড্যাশবোর্ড</span>
           </Link>
           <div className="flex items-center gap-2">
+            {isSuperAdmin && (
+              <Button variant="outline" size="sm" asChild className="border-amber-400 text-amber-600 hover:bg-amber-50">
+                <Link to="/super-admin"><Crown className="mr-1 h-4 w-4" /> সুপার প্যানেল</Link>
+              </Button>
+            )}
             <Button variant="ghost" size="sm" asChild>
               <Link to="/"><Home className="mr-1 h-4 w-4" /> হোম</Link>
             </Button>
