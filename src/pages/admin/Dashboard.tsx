@@ -99,6 +99,30 @@ const CHART_COLORS = [
   "hsl(280, 50%, 50%)", "hsl(30, 80%, 50%)",
 ];
 
+interface DonationRow {
+  id: string;
+  donor_name: string;
+  donor_email: string | null;
+  donor_phone: string | null;
+  amount: number;
+  purpose: string | null;
+  campaign_id: string | null;
+  payment_method: string | null;
+  transaction_id: string | null;
+  status: string;
+  notes: string | null;
+  created_at: string;
+}
+
+interface CampaignRow {
+  id: string;
+  title: string;
+  description: string | null;
+  goal_amount: number | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -130,8 +154,8 @@ export default function AdminDashboard() {
   const [addingEvent, setAddingEvent] = useState(false);
 
   // Donations
-  const [donations, setDonations] = useState<any[]>([]);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [donations, setDonations] = useState<DonationRow[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignRow[]>([]);
   const [newCampaign, setNewCampaign] = useState({ title: "", description: "", goal_amount: "" });
   const [addingCampaign, setAddingCampaign] = useState(false);
 
@@ -140,6 +164,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     checkAdmin();
     loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkAdmin = async () => {
@@ -419,7 +444,7 @@ export default function AdminDashboard() {
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds);
-    next.has(id) ? next.delete(id) : next.add(id);
+    if (next.has(id)) { next.delete(id); } else { next.add(id); }
     setSelectedIds(next);
   };
 
@@ -772,7 +797,7 @@ export default function AdminDashboard() {
             {campaigns.length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-display font-semibold">ক্যাম্পেইন তালিকা</h3>
-                {campaigns.map((c: any) => (
+                {campaigns.map((c: CampaignRow) => (
                   <Card key={c.id} className="shadow-card">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div>
@@ -814,7 +839,7 @@ export default function AdminDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {donations.map((d: any) => (
+                      {donations.map((d: DonationRow) => (
                         <TableRow key={d.id}>
                           <TableCell>
                             <div>

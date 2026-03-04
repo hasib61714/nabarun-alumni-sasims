@@ -53,7 +53,7 @@ export default function Donations() {
       .select("campaign_id, amount")
       .eq("status", "approved");
     const totals: Record<string, number> = {};
-    (donations || []).forEach((d: any) => {
+    (donations || []).forEach((d: { campaign_id: string | null; amount: number }) => {
       const key = d.campaign_id || "general";
       totals[key] = (totals[key] || 0) + Number(d.amount);
     });
