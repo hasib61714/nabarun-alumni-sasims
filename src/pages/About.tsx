@@ -14,8 +14,9 @@ const values = [
 const developer = {
   name: "Md. Hasibul Hasan",
   photo: developerPhoto,
-  bio: "নবারুণ পাবলিক স্কুল (NPS), SSC ২০১৭ ব্যাচের ছাত্র। এই সাইটটি ডিজাইন ও ডেভেলপ করেছেন। ওয়েব ডেভেলপমেন্ট ও আধুনিক প্রযুক্তিতে দক্ষ।",
-  linkedin: "https://www.linkedin.com/in/md-hasibul-hasan-software-engineer97",
+  role: "Full-Stack Web Developer",
+  bio: "নবারুণ পাবলিক স্কুল (NPS) এর SSC ২০১৭ ব্যাচের গর্বিত প্রাক্তন ছাত্র। বর্তমানে Green University of Bangladesh থেকে BSc in Computer Science & Engineering অধ্যয়নরত। ওয়েব ডেভেলপমেন্ট, আর্টিফিশিয়াল ইন্টেলিজেন্স ও মেশিন লার্নিং-এ বিশেষ আগ্রহী। এই সিস্টেমটি তাঁর প্রিয় মাতৃ প্রতিষ্ঠানের প্রতি অবদান হিসেবে তৈরি করা হয়েছে।",
+  linkedin: "https://www.linkedin.com/in/md-hasibul-hasan-10749537a/",
   facebook: "https://www.facebook.com/mhhasan2347",
   github: "https://github.com/hasib61714",
   website: "https://hasib61714.github.io/hasibul-portfolio-v5/",
@@ -97,7 +98,8 @@ export default function About() {
                   {developer.photo ? <AvatarImage src={developer.photo} alt={developer.name} /> : null}
                   <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">{devInitials}</AvatarFallback>
                 </Avatar>
-                <h3 className="font-display text-2xl font-bold mb-2">{developer.name}</h3>
+                <h3 className="font-display text-2xl font-bold mb-1">{developer.name}</h3>
+                <p className="text-sm text-primary font-medium mb-3">{developer.role}</p>
                 <p className="text-muted-foreground max-w-md mb-4">{developer.bio}</p>
                 {socialLinks.length > 0 && (
                   <div className="flex items-center gap-3">

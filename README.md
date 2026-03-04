@@ -179,6 +179,8 @@ Row Level Security (RLS) is enabled on all tables.
 
 🎓 BSc in Computer Science & Engineering &nbsp;|&nbsp; 🏫 Green University of Bangladesh
 
+🏫 **Alumni:** নবারুণ পাবলিক স্কুল (NPS) — SSC Batch 2017
+
 🚀 **Interests:** Web Development &nbsp;·&nbsp; Artificial Intelligence &nbsp;·&nbsp; Machine Learning &nbsp;·&nbsp; Software Engineering
 
 [![Portfolio](https://img.shields.io/badge/Portfolio-hasib61714.github.io-blueviolet?style=flat-square&logo=google-chrome&logoColor=white)](https://hasib61714.github.io/hasibul-portfolio-v5/)
