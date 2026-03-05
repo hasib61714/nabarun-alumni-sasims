@@ -2,7 +2,7 @@
 
 ![নবারুণ লোগো](public/logo.png)
 
-### Student Alumni & Staff Information Management System
+## Student Alumni & Staff Information Management System
 
 _A full-stack web application for managing alumni, staff, and student records for the Nabarun Education Family._
 
@@ -19,15 +19,21 @@ _A full-stack web application for managing alumni, staff, and student records fo
 
 ## 📋 Table of Contents
 
-- [Overview](#-overview)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Getting Started](#-getting-started)
-- [Project Structure](#-project-structure)
-- [Available Scripts](#-available-scripts)
-- [Environment Variables](#-environment-variables)
-- [Database Schema](#-database-schema)
-- [Author](#-author)
+- [নবারুণ অ্যালামনাই — SASIMS](#নবারুণ-অ্যালামনাই--sasims)
+  - [Student Alumni \& Staff Information Management System](#student-alumni--staff-information-management-system)
+  - [📋 Table of Contents](#-table-of-contents)
+  - [🔍 Overview](#-overview)
+  - [✨ Features](#-features)
+  - [🛠️ Tech Stack](#️-tech-stack)
+  - [🚀 Getting Started](#-getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+  - [📁 Project Structure](#-project-structure)
+  - [📜 Available Scripts](#-available-scripts)
+  - [🔑 Environment Variables](#-environment-variables)
+  - [🗄️ Database Schema](#️-database-schema)
+  - [👤 Author](#-author)
+    - [Md. Hasibul Hasan](#md-hasibul-hasan)
 
 ---
 
