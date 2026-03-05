@@ -1,10 +1,8 @@
-<div align="center">
-
-<img src="public/logo.png" alt="নবারুণ লোগো" width="100" />
-
 # নবারুণ অ্যালামনাই — SASIMS
 
-**Student Alumni & Staff Information Management System**
+![নবারুণ লোগো](public/logo.png)
+
+### Student Alumni & Staff Information Management System
 
 _A full-stack web application for managing alumni, staff, and student records for the Nabarun Education Family._
 
@@ -16,8 +14,6 @@ _A full-stack web application for managing alumni, staff, and student records fo
 [![Vercel](https://img.shields.io/badge/Deployed-Vercel-000000?style=flat-square&logo=vercel&logoColor=white)](https://alumni-connect-main.vercel.app)
 
 [![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-alumni--connect--main.vercel.app-blue?style=for-the-badge)](https://alumni-connect-main.vercel.app)
-
-</div>
 
 ---
 
@@ -44,7 +40,7 @@ SASIMS is a comprehensive **alumni management system** built for the Nabarun Edu
 ## ✨ Features
 
 | Feature | Description |
-|---|---|
+| --- | --- |
 | 🔐 **Authentication** | Secure login & registration via Supabase Auth |
 | 👤 **Student Profiles** | Complete profile management with photo upload |
 | 🗂️ **Alumni Directory** | Searchable and filterable alumni list |
@@ -61,7 +57,7 @@ SASIMS is a comprehensive **alumni management system** built for the Nabarun Edu
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
-|---|---|
+| --- | --- |
 | **Frontend** | React 18, TypeScript, Vite 5 |
 | **Styling** | Tailwind CSS, shadcn/ui, Framer Motion |
 | **State / Data** | TanStack React Query |
@@ -96,13 +92,13 @@ cp .env.example .env
 npm run dev
 ```
 
-The app will be available at **http://localhost:8080**
+The app will be available at <http://localhost:8080>
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 nabarun-alumni-sasims/
 ├── public/                   # Static assets (favicon, logo)
 ├── src/
@@ -156,7 +152,7 @@ VITE_SUPABASE_PROJECT_ID=your_project_id
 ## 🗄️ Database Schema
 
 | Table | Purpose |
-|---|---|
+| --- | --- |
 | `user_roles` | Admin / Student role assignment |
 | `student_profiles` | Alumni profile data |
 | `contact_messages` | Contact form submissions |
@@ -173,26 +169,18 @@ Row Level Security (RLS) is enabled on all tables.
 
 ## 👤 Author
 
-<div align="center">
+### Md. Hasibul Hasan
 
-**Md. Hasibul Hasan**
-
-🎓 BSc in Computer Science & Engineering &nbsp;|&nbsp; 🏫 Green University of Bangladesh
+🎓 BSc in Computer Science & Engineering | 🏫 Green University of Bangladesh
 
 🏫 **Alumni:** নবারুণ পাবলিক স্কুল (NPS) — SSC Batch 2017
 
-🚀 **Interests:** Web Development &nbsp;·&nbsp; Artificial Intelligence &nbsp;·&nbsp; Machine Learning &nbsp;·&nbsp; Software Engineering
+🚀 **Interests:** Web Development · Artificial Intelligence · Machine Learning · Software Engineering
 
 [![Portfolio](https://img.shields.io/badge/Portfolio-hasib61714.github.io-blueviolet?style=flat-square&logo=google-chrome&logoColor=white)](https://hasib61714.github.io/hasibul-portfolio-v5/)
 [![GitHub](https://img.shields.io/badge/GitHub-hasib61714-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/hasib61714)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-md--hasibul--hasan-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/md-hasibul-hasan-10749537a/)
 
-</div>
-
 ---
 
-<div align="center">
-
 Made with ❤️ for **Nabarun Education Family**
-
-</div>
