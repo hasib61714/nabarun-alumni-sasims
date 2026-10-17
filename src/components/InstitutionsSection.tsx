@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { institutions } from "@/data/institutions";
@@ -40,24 +39,6 @@ export function InstitutionCards() {
           </div>
         </motion.div>
       ))}
-    </div>
-  );
-}
-
-export function InstitutionLogos() {
-  return (
-    <div className="mt-8 border-t pt-6">
-      <h3 className="mb-4 text-center font-display font-semibold">আমাদের প্রতিষ্ঠান</h3>
-      <div className="flex flex-wrap items-start justify-center gap-6 md:gap-10">
-        {institutions.map((inst) => (
-          <Link key={inst.id} to="/about#institutions" className="group flex w-28 flex-col items-center gap-2 text-center">
-            <span className="flex h-16 w-16 items-center justify-center rounded-md border bg-white p-1">
-              <img src={inst.logo} alt={`${inst.name} logo`} className="max-h-full w-auto object-contain" loading="lazy" />
-            </span>
-            <span className="text-xs text-muted-foreground transition-colors group-hover:text-primary">{inst.name}</span>
-          </Link>
-        ))}
-      </div>
     </div>
   );
 }

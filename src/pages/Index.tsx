@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import nabarunLogo from "@/assets/nabarun-logo.png";
+import npsLogo from "@/assets/institutions/nps.png";
+import blmsLogo from "@/assets/institutions/blms.png";
+import coachingLogo from "@/assets/institutions/coaching.png";
 import TestimonialsSection from "@/components/home/TestimonialsSection";
 import MemoriesSection from "@/components/home/MemoriesSection";
 
@@ -21,9 +24,9 @@ const features = [
 ];
 
 const institutions = [
-  { name: "নবারুণ পাবলিক স্কুল (NPS)", desc: "পুরুষ শিক্ষার্থীদের জন্য মানসম্মত শিক্ষা প্রতিষ্ঠান।", icon: GraduationCap },
-  { name: "বিপ্লব লোপা মেমোরিয়াল গার্লস স্কুল", desc: "নারী শিক্ষায় অগ্রণী ভূমিকা পালনকারী প্রতিষ্ঠান।", icon: GraduationCap },
-  { name: "নবারুণ কোচিং সেন্টার", desc: "পরীক্ষার প্রস্তুতি ও বিশেষ কোচিং সেবা।", icon: BookOpen },
+  { name: "নবারুণ পাবলিক স্কুল (NPS)", desc: "পুরুষ শিক্ষার্থীদের জন্য মানসম্মত শিক্ষা প্রতিষ্ঠান।", logo: npsLogo },
+  { name: "বিপ্লব লোপা মেমোরিয়াল গার্লস স্কুল", desc: "নারী শিক্ষায় অগ্রণী ভূমিকা পালনকারী প্রতিষ্ঠান।", logo: blmsLogo },
+  { name: "নবারুণ কোচিং সেন্টার", desc: "পরীক্ষার প্রস্তুতি ও বিশেষ কোচিং সেবা।", logo: coachingLogo },
 ];
 
 interface TopAlumni {
@@ -184,8 +187,8 @@ export default function Index() {
               <motion.div key={inst.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
                 <Card className="h-full shadow-card hover:shadow-elevated transition-shadow text-center">
                   <CardContent className="pt-8 pb-6">
-                    <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-                      <inst.icon className="h-7 w-7 text-primary" />
+                    <div className="mx-auto mb-5 flex h-28 w-full max-w-[220px] items-center justify-center rounded-xl border bg-white p-3">
+                      <img src={inst.logo} alt={`${inst.name} এর লোগো`} className="max-h-full w-auto object-contain" loading="lazy" />
                     </div>
                     <h3 className="font-display font-semibold text-lg mb-2">{inst.name}</h3>
                     <p className="text-sm text-muted-foreground">{inst.desc}</p>
