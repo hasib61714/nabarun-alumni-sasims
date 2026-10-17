@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,10 +27,11 @@ type FormValues = z.infer<typeof schema>;
 function NoticeDialog({ target, adminId, onClose }: { target: Notice | "new" | null; adminId: string; onClose: () => void }) {
   const { create, update } = useRowMutations("notices");
   const editing = target && target !== "new" ? target : null;
-  const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    values: { title: editing?.title ?? "", content: editing?.content ?? "", is_published: editing?.is_published ?? true },
-  });
+  const initial: FormValues = { title: editing?.title ?? "", content: editing?.content ?? "", is_published: editing?.is_published ?? true };
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: initial });
+  // start from the right values every time the dialog is opened
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (target) form.reset(initial); }, [target]);
   const errors = form.formState.errors;
 
   const save = form.handleSubmit(async (v) => {

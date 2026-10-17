@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +18,8 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { useConfirm } from "@/components/common/use-confirm";
 import { attempt, useAdminRows, useRowMutations, type Row } from "@/hooks/useAdminData";
 import { downloadCSV, todayStamp, type CsvColumn } from "@/lib/export";
+import { yearField } from "@/lib/forms";
+import { removeUserMemoryFolder } from "@/lib/memory-storage";
 import { formatDate, initialsOf } from "@/lib/format";
 import { safeHttpsUrl } from "@/lib/memories";
 import { usePagination } from "@/hooks/usePagination";
@@ -29,7 +31,7 @@ const optionalUrl = z.string().trim().max(300).refine((v) => !v || /^https?:\/\/
 const schema = z.object({
   full_name: z.string().trim().min(1, "নাম দিন").max(100),
   roll: z.string().trim().max(30),
-  batch_year: z.string().trim().regex(/^(\d{4})?$/, "সঠিক সাল লিখুন"),
+  batch_year: yearField,
   result: z.string().trim().max(500),
   achievement: z.string().trim().max(1000),
   current_profession: z.string().trim().max(120),
@@ -74,7 +76,9 @@ function StudentAvatar({ student, className }: { student: Student; className?: s
 
 function EditStudentDialog({ student, onClose }: { student: Student | null; onClose: () => void }) {
   const { update } = useRowMutations("student_profiles", "user_id");
-  const form = useForm<FormValues>({ resolver: zodResolver(schema), values: student ? toForm(student) : undefined });
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: student ? toForm(student) : undefined });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (student) form.reset(toForm(student)); }, [student]);
   const errors = form.formState.errors;
 
   const save = form.handleSubmit(async (v) => {
@@ -181,8 +185,9 @@ export default function StudentsSection() {
   const setApproval = async (s: Student, approve: boolean) =>
     attempt(update.mutateAsync({ id: s.user_id, values: { is_approved: approve } }), approve ? "ছাত্র অনুমোদিত হয়েছে" : "অনুমোদন প্রত্যাহার করা হয়েছে");
 
+  const selectedRows = filtered.filter((s) => selected.has(s.user_id));
   const bulkApproval = async (approve: boolean) => {
-    const ids = [...selected];
+    const ids = selectedRows.map((s) => s.user_id);
     if (await attempt(updateMany.mutateAsync({ ids, values: { is_approved: approve } }), `${ids.length} জনের ${approve ? "অনুমোদন দেওয়া" : "অনুমোদন প্রত্যাহার করা"} হয়েছে`)) setSelected(new Set());
   };
 
@@ -194,13 +199,21 @@ export default function StudentsSection() {
       destructive: true,
     });
     if (ok) {
+      await removeUserMemoryFolder(s.user_id); // their uploaded photos/videos must not stay public
       await attempt(deleteUser.mutateAsync(s.user_id), "ছাত্র মুছে ফেলা হয়েছে");
       setSelected((prev) => { const next = new Set(prev); next.delete(s.user_id); return next; });
     }
   };
 
   const toggle = (id: string) => setSelected((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
-  const toggleAll = () => setSelected((prev) => (prev.size === filtered.length ? new Set() : new Set(filtered.map((s) => s.user_id))));
+  // the header checkbox acts on the rows shown on this page
+  const toggleAll = () => setSelected((prev) => {
+    const ids = pager.pageItems.map((s) => s.user_id);
+    const all = ids.every((id) => prev.has(id));
+    const next = new Set(prev);
+    ids.forEach((id) => (all ? next.delete(id) : next.add(id)));
+    return next;
+  });
 
   const columns: Column<Student>[] = [
     { key: "name", header: "নাম", primary: true, cell: (s) => (
@@ -221,24 +234,24 @@ export default function StudentsSection() {
       />
 
       <Toolbar>
-        <SearchInput value={search} onChange={(v) => { setSearch(v); pager.setPage(1); }} placeholder="নাম বা রোল দিয়ে খুঁজুন…" />
-        <Select value={batch} onValueChange={(v) => { setBatch(v); pager.setPage(1); }}>
+        <SearchInput value={search} onChange={(v) => { setSearch(v); setSelected(new Set()); pager.setPage(1); }} placeholder="নাম বা রোল দিয়ে খুঁজুন…" />
+        <Select value={batch} onValueChange={(v) => { setBatch(v); setSelected(new Set()); pager.setPage(1); }}>
           <SelectTrigger className="sm:w-36" aria-label="ব্যাচ"><SelectValue placeholder="ব্যাচ" /></SelectTrigger>
           <SelectContent><SelectItem value="all">সকল ব্যাচ</SelectItem>{batches.map((b) => <SelectItem key={b} value={String(b)}>{b}</SelectItem>)}</SelectContent>
         </Select>
-        <Select value={status} onValueChange={(v) => { setStatus(v); pager.setPage(1); }}>
+        <Select value={status} onValueChange={(v) => { setStatus(v); setSelected(new Set()); pager.setPage(1); }}>
           <SelectTrigger className="sm:w-40" aria-label="অবস্থা"><SelectValue placeholder="অবস্থা" /></SelectTrigger>
           <SelectContent><SelectItem value="all">সব অবস্থা</SelectItem><SelectItem value="approved">অনুমোদিত</SelectItem><SelectItem value="pending">অপেক্ষমান</SelectItem></SelectContent>
         </Select>
       </Toolbar>
 
-      {selected.size > 0 && (
+      {selectedRows.length > 0 && (
         <div className="sticky top-16 z-20 mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 shadow-card backdrop-blur">
-          <span className="text-sm font-medium">{selected.size} জন নির্বাচিত</span>
+          <span className="text-sm font-medium">{selectedRows.length} জন নির্বাচিত</span>
           <div className="ml-auto flex flex-wrap gap-2">
             <Button size="sm" className="gap-1.5" onClick={() => bulkApproval(true)} disabled={updateMany.isPending}><CheckCircle2 className="h-4 w-4" /> অনুমোদন</Button>
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => bulkApproval(false)} disabled={updateMany.isPending}><XCircle className="h-4 w-4" /> প্রত্যাহার</Button>
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => downloadCSV(`nabarun-students-selected-${todayStamp()}.csv`, students.filter((s) => selected.has(s.user_id)), CSV_COLUMNS)}><Download className="h-4 w-4" /> CSV</Button>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => downloadCSV(`nabarun-students-selected-${todayStamp()}.csv`, selectedRows, CSV_COLUMNS)}><Download className="h-4 w-4" /> CSV</Button>
             <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>পরিষ্কার</Button>
           </div>
         </div>

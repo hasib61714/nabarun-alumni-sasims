@@ -3,7 +3,7 @@ import { BookHeart, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { safeHttpsUrl, type MemoryMedia } from "@/lib/memories";
+import { safeMediaUrl, type MemoryMedia } from "@/lib/memories";
 import { parseYouTube, youtubeEmbedUrl, youtubeThumbnailUrl } from "@/lib/video";
 
 const PlayBadge = () => (
@@ -16,7 +16,7 @@ const PlayBadge = () => (
 
 /** Square/landscape preview of one media item (used on cards and in the uploader). */
 export function MediaThumb({ media, alt, className }: { media: MemoryMedia | null; alt: string; className?: string }) {
-  const url = media ? safeHttpsUrl(media.url) : null;
+  const url = media ? safeMediaUrl(media.url) : null;
   const youtubeId = media?.type === "youtube" ? parseYouTube(media.url) : null;
 
   return (
@@ -73,7 +73,7 @@ export function MediaCarousel({ media, title }: { media: MemoryMedia[]; title: s
       <Carousel setApi={setApi} opts={{ align: "start" }}>
         <CarouselContent className="ml-0">
           {media.map((m, i) => {
-            const url = safeHttpsUrl(m.url);
+            const url = safeMediaUrl(m.url);
             const youtubeId = m.type === "youtube" ? parseYouTube(m.url) : null;
             return (
               <CarouselItem key={`${m.url}-${i}`} className="pl-0">

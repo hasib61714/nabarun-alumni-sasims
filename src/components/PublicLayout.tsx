@@ -147,7 +147,7 @@ export default function PublicLayout() {
               </p>
             </div>
             <div>
-              <h4 className="font-display font-semibold mb-3">দ্রুত লিংক</h4>
+              <h3 className="font-display font-semibold mb-3">দ্রুত লিংক</h3>
               <div className="space-y-2">
                 {navLinks.map((l) => (
                   <Link key={l.path} to={l.path} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
@@ -157,7 +157,7 @@ export default function PublicLayout() {
               </div>
             </div>
             <div>
-              <h4 className="font-display font-semibold mb-3">যোগাযোগ</h4>
+              <h3 className="font-display font-semibold mb-3">যোগাযোগ</h3>
               <p className="text-sm text-muted-foreground">info.nabarun@gmail.com</p>
               <p className="text-sm text-muted-foreground">+880 1741 919462</p>
               <a href="https://www.nabarun.com.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">

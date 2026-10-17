@@ -14,6 +14,7 @@ import { Field, FormDialog } from "@/components/common/FormDialog";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { useConfirm } from "@/components/common/use-confirm";
 import { attempt, useAdminRows, useRowMutations, type Row } from "@/hooks/useAdminData";
+import { yearField } from "@/lib/forms";
 import { IMAGE_MAX_RAW_BYTES, IMAGE_TYPES, prepareImage, safeHttpsUrl } from "@/lib/memories";
 import { ActionButton, ListSkeleton, SearchInput, SectionHeader, Toolbar } from "../AdminCommon";
 
@@ -23,7 +24,7 @@ const metaSchema = z.object({
   title: z.string().trim().max(150),
   description: z.string().trim().max(1000),
   event_name: z.string().trim().max(150),
-  batch_year: z.string().trim().regex(/^(\d{4})?$/, "সঠিক সাল লিখুন"),
+  batch_year: yearField,
 });
 type Meta = z.infer<typeof metaSchema>;
 
@@ -53,6 +54,7 @@ function UploadDialog({ open, adminId, onClose }: { open: boolean; adminId: stri
     if (files.length === 0) { toast.error("অন্তত একটি ছবি বেছে নিন"); return; }
     if (files.length === 1 && !v.title) { form.setError("title", { message: "শিরোনাম দিন" }); return; }
     let done = 0;
+    const failed: File[] = [];
     setProgress(0);
     for (const file of files) {
       try {
@@ -69,13 +71,14 @@ function UploadDialog({ open, adminId, onClose }: { open: boolean; adminId: stri
         done++;
         setProgress(done);
       } catch (error) {
+        failed.push(file);
         toast.error(`${file.name}: ${error instanceof Error ? error.message : "আপলোড ব্যর্থ"}`);
       }
     }
     setProgress(null);
     if (done > 0) toast.success(`${done}টি ছবি যুক্ত হয়েছে`);
-    if (done === files.length) onClose();
-    else setFiles((prev) => prev.slice(done));
+    if (failed.length === 0) onClose();
+    else setFiles(failed); // keep only the ones that did not upload, so a retry does not duplicate the rest
   });
 
   return (
@@ -111,10 +114,10 @@ type EditValues = z.infer<typeof editSchema>;
 
 function EditDialog({ photo, onClose }: { photo: Photo | null; onClose: () => void }) {
   const { update } = useRowMutations("gallery_photos");
-  const form = useForm<EditValues>({
-    resolver: zodResolver(editSchema),
-    values: photo ? { title: photo.title, description: photo.description ?? "", event_name: photo.event_name ?? "", batch_year: photo.batch_year?.toString() ?? "", is_published: !!photo.is_published } : undefined,
-  });
+  const initial: EditValues | undefined = photo ? { title: photo.title, description: photo.description ?? "", event_name: photo.event_name ?? "", batch_year: photo.batch_year?.toString() ?? "", is_published: !!photo.is_published } : undefined;
+  const form = useForm<EditValues>({ resolver: zodResolver(editSchema), defaultValues: initial });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (initial) form.reset(initial); }, [photo]);
   const errors = form.formState.errors;
   const save = form.handleSubmit(async (v) => {
     if (!photo) return;

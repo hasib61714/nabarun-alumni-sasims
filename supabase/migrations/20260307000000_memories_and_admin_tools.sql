@@ -6,8 +6,13 @@
 -- 1. Memories
 -- ---------------------------------------------------------------------------
 
--- media is an array of { "type": "image" | "video" | "youtube", "url": "https://...", "path": "<storage path>" }
-CREATE OR REPLACE FUNCTION public.is_valid_memory_media(m jsonb)
+-- media is an array of
+--   { "type": "image" | "video", "path": "<owner id>/<file name>" }   (a file in the 'memories' bucket)
+--   { "type": "youtube", "url": "https://youtu.be/<11 character id>" }
+-- Uploaded files are pinned to the owner's own storage folder, and the page builds
+-- the public address itself from that path, so a memory can never point at someone
+-- else's file or at an outside web address.
+CREATE OR REPLACE FUNCTION public.is_valid_memory_media(m jsonb, owner uuid)
 RETURNS boolean
 LANGUAGE sql
 IMMUTABLE
@@ -19,8 +24,9 @@ AS $$
       WHERE jsonb_typeof(e) <> 'object'
          OR (e ->> 'type') IS NULL
          OR (e ->> 'type') NOT IN ('image', 'video', 'youtube')
-         OR coalesce(e ->> 'url', '') !~ '^https://'
-         OR char_length(e ->> 'url') > 600
+         OR ((e ->> 'type') = 'youtube' AND coalesce(e ->> 'url', '') !~ '^https://youtu\.be/[A-Za-z0-9_-]{11}$')
+         OR ((e ->> 'type') IN ('image', 'video') AND coalesce(e ->> 'path', '') !~ ('^' || owner::text || '/[A-Za-z0-9._-]{1,100}$'))
+         OR char_length(coalesce(e ->> 'url', '')) > 600
     )
 $$;
 
@@ -46,9 +52,22 @@ CREATE TABLE IF NOT EXISTS public.memories (
     AND char_length(btrim(author_name)) BETWEEN 1 AND 100
     AND char_length(category) <= 50
     AND (rejection_reason IS NULL OR char_length(rejection_reason) <= 500)
-    AND public.is_valid_memory_media(media)
+    AND public.is_valid_memory_media(media, user_id)
   )
 );
+
+-- (re)apply the constraint so databases created by an earlier version of this file pick up the stricter rule
+ALTER TABLE public.memories DROP CONSTRAINT IF EXISTS memories_valid_values;
+ALTER TABLE public.memories ADD CONSTRAINT memories_valid_values CHECK (
+  status IN ('pending', 'approved', 'rejected')
+  AND char_length(btrim(title)) BETWEEN 3 AND 150
+  AND char_length(btrim(body)) BETWEEN 10 AND 5000
+  AND char_length(btrim(author_name)) BETWEEN 1 AND 100
+  AND char_length(category) <= 50
+  AND (rejection_reason IS NULL OR char_length(rejection_reason) <= 500)
+  AND public.is_valid_memory_media(media, user_id)
+);
+DROP FUNCTION IF EXISTS public.is_valid_memory_media(jsonb);
 
 CREATE INDEX IF NOT EXISTS memories_status_created_idx ON public.memories (status, created_at DESC);
 CREATE INDEX IF NOT EXISTS memories_user_idx ON public.memories (user_id);
@@ -173,14 +192,28 @@ SET public = true,
     file_size_limit = EXCLUDED.file_size_limit,
     allowed_mime_types = EXCLUDED.allowed_mime_types;
 
+-- No public SELECT policy: files are served through the bucket's public URLs, which do not
+-- need one, and a policy would let anybody LIST every uploaded file (including media of
+-- memories that are still pending or were rejected).
 DROP POLICY IF EXISTS "Memory media is publicly accessible" ON storage.objects;
-CREATE POLICY "Memory media is publicly accessible" ON storage.objects
-  FOR SELECT USING (bucket_id = 'memories');
+DROP POLICY IF EXISTS "Owners and admins can view memory media" ON storage.objects;
+CREATE POLICY "Owners and admins can view memory media" ON storage.objects
+  FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'memories'
+    AND (auth.uid()::text = (storage.foldername(name))[1] OR public.has_role(auth.uid(), 'admin'))
+  );
 
 DROP POLICY IF EXISTS "Users can upload own memory media" ON storage.objects;
 CREATE POLICY "Users can upload own memory media" ON storage.objects
   FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'memories' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+-- Admins edit other people's memories, so they may add files to the owner's folder too.
+DROP POLICY IF EXISTS "Admins can upload memory media" ON storage.objects;
+CREATE POLICY "Admins can upload memory media" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'memories' AND public.has_role(auth.uid(), 'admin'));
 
 DROP POLICY IF EXISTS "Users can delete own memory media" ON storage.objects;
 CREATE POLICY "Users can delete own memory media" ON storage.objects
@@ -230,3 +263,17 @@ $$;
 
 REVOKE ALL ON FUNCTION public.admin_delete_user(UUID) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_delete_user(UUID) TO authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 4. E-mail addresses typed by the public end up in mailto: links for admins,
+--    so only plain addresses are accepted (no "?bcc=..." tricks).
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.contact_messages DROP CONSTRAINT IF EXISTS contact_messages_email_format;
+ALTER TABLE public.contact_messages ADD CONSTRAINT contact_messages_email_format CHECK (
+  email ~ '^[^@[:space:],;?&<>"'']+@[^@[:space:],;?&<>"'']+\.[^@[:space:],;?&<>"'']+$'
+) NOT VALID;
+
+ALTER TABLE public.donations DROP CONSTRAINT IF EXISTS donations_email_format;
+ALTER TABLE public.donations ADD CONSTRAINT donations_email_format CHECK (
+  donor_email IS NULL OR donor_email ~ '^[^@[:space:],;?&<>"'']+@[^@[:space:],;?&<>"'']+\.[^@[:space:],;?&<>"'']+$'
+) NOT VALID;

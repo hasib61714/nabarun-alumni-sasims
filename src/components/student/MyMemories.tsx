@@ -55,7 +55,7 @@ export default function MyMemories({ userId, authorName, defaultBatch }: Props) 
     mutationFn: async (memory: Memory) => {
       const { error } = await supabase.from("memories").delete().eq("id", memory.id);
       if (error) throw error;
-      await removeMemoryFiles(memory.media);
+      await removeMemoryFiles(memory.media, memory.user_id);
     },
     onSuccess: () => { toast.success("স্মৃতি মুছে ফেলা হয়েছে"); void refresh(); },
     onError: (error: Error) => toast.error(error.message),

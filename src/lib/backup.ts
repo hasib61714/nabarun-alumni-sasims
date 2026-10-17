@@ -15,7 +15,7 @@ const PAGE = 1000;
 async function fetchAll(table: TableName): Promise<unknown[]> {
   const rows: unknown[] = [];
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase.from(table).select("*").range(from, from + PAGE - 1);
+    const { data, error } = await supabase.from(table).select("*").order("id", { ascending: true }).range(from, from + PAGE - 1);
     if (error) throw new Error(`${table}: ${error.message}`);
     rows.push(...(data ?? []));
     if (!data || data.length < PAGE) break;

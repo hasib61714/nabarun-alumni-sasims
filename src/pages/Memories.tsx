@@ -114,6 +114,7 @@ export default function Memories() {
           />
         ) : (
           <>
+            <h2 className="sr-only">প্রকাশিত স্মৃতি</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((m, i) => <MemoryCard key={m.id} memory={m} to={`/memories/${m.id}`} index={i % 9} />)}
             </div>

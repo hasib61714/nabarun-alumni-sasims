@@ -88,11 +88,11 @@ export default function MessagesSection() {
             <>
               <DialogHeader className="text-left">
                 <DialogTitle className="font-display leading-snug">{open.subject}</DialogTitle>
-                <DialogDescription>{open.name} · <a className="text-primary hover:underline" href={`mailto:${open.email}`}>{open.email}</a><br />{formatDateTime(open.created_at)}</DialogDescription>
+                <DialogDescription>{open.name} · <a className="text-primary hover:underline" href={`mailto:${encodeURIComponent(open.email)}`}>{open.email}</a><br />{formatDateTime(open.created_at)}</DialogDescription>
               </DialogHeader>
               <p className="whitespace-pre-line break-words rounded-lg bg-muted/50 p-4 text-sm leading-7">{open.message}</p>
               <div className="flex flex-wrap gap-2">
-                <Button asChild className="gap-2"><a href={`mailto:${open.email}?subject=${encodeURIComponent(`Re: ${open.subject}`)}`}><Reply className="h-4 w-4" /> উত্তর দিন</a></Button>
+                <Button asChild className="gap-2"><a href={`mailto:${encodeURIComponent(open.email)}?subject=${encodeURIComponent(`Re: ${open.subject}`)}`}><Reply className="h-4 w-4" /> উত্তর দিন</a></Button>
                 <Button variant="outline" className="gap-2" onClick={() => attempt(update.mutateAsync({ id: open.id, values: { is_read: false } }), "অপঠিত হিসেবে চিহ্নিত হয়েছে").then(() => setOpenId(null))}><Mail className="h-4 w-4" /> অপঠিত করুন</Button>
                 <Button variant="ghost" className="ml-auto gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => destroy(open)}><Trash2 className="h-4 w-4" /> মুছুন</Button>
               </div>

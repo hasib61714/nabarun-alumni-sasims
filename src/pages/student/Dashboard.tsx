@@ -215,7 +215,7 @@ export default function StudentDashboard() {
         </div>
       </header>
 
-      <div className="container py-8 max-w-4xl">
+      <main className="container py-8 max-w-4xl">
         {/* Profile Header */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
           <Card className="shadow-elevated mb-8 overflow-hidden">
@@ -227,7 +227,7 @@ export default function StudentDashboard() {
                     {photoUrl ? <AvatarImage src={photoUrl} alt="Profile" /> : null}
                     <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">{initials}</AvatarFallback>
                   </Avatar>
-                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="absolute inset-0 rounded-full bg-foreground/0 group-hover:bg-foreground/40 flex items-center justify-center transition-colors cursor-pointer">
+                  <button type="button" aria-label="প্রোফাইল ছবি পরিবর্তন করুন" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="absolute inset-0 rounded-full bg-foreground/0 group-hover:bg-foreground/40 flex items-center justify-center transition-colors cursor-pointer">
                     <Camera className="h-6 w-6 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                   <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
@@ -251,7 +251,7 @@ export default function StudentDashboard() {
                   <span className="text-muted-foreground">প্রোফাইল সম্পূর্ণতা</span>
                   <span className="font-semibold text-primary">{completeness}%</span>
                 </div>
-                <Progress value={completeness} className="h-2" />
+                <Progress value={completeness} className="h-2" aria-label="প্রোফাইল সম্পূর্ণতা" />
                 {completeness < 100 && <p className="text-xs text-muted-foreground mt-1">সব তথ্য পূরণ করলে অনুমোদন দ্রুত হবে।</p>}
               </div>
             </CardContent>
@@ -265,6 +265,7 @@ export default function StudentDashboard() {
           </TabsList>
 
           <TabsContent value="profile" className="mt-0 space-y-6">
+            <h2 className="sr-only">প্রোফাইলের তথ্য</h2>
             {/* Notices */}
             {notices.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
@@ -418,7 +419,7 @@ export default function StudentDashboard() {
             )}
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { yearField } from "@/lib/forms";
 import { parseYouTube } from "@/lib/video";
 
 export type MemoryStatus = "pending" | "approved" | "rejected";
@@ -46,7 +47,7 @@ export const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
 export const mb = (bytes: number) => Math.round(bytes / (1024 * 1024));
 
-/** Only https URLs are ever rendered as media sources. */
+/** Only https URLs are used for links to the outside world. */
 export function safeHttpsUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   try {
@@ -54,6 +55,25 @@ export function safeHttpsUrl(url: string | null | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+/** Media sources: https, or plain http only for a local development server. */
+export function safeMediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "https:") return url;
+    return parsed.protocol === "http:" && (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Public address of a file in the memories bucket. Built from the path, never taken from stored text. */
+export function publicMediaUrl(path: string): string | null {
+  const base = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/+$/, "");
+  if (!base || !/^[0-9a-f-]{36}\/[A-Za-z0-9._-]{1,100}$/i.test(path)) return null;
+  return `${base}/storage/v1/object/public/${MEMORY_BUCKET}/${path}`;
 }
 
 /** Validates a file before upload. Returns a Bengali error message, or null if fine. */
@@ -70,14 +90,21 @@ export function validateMemoryFile(file: Pick<File, "type" | "size" | "name">): 
 export const coverOf = (memory: Pick<Memory, "media">): MemoryMedia | null =>
   memory.media.find((m) => m.type === "image") ?? memory.media.find((m) => m.type === "youtube") ?? memory.media[0] ?? null;
 
-/** Normalises the jsonb column coming from the database. */
+/**
+ * Normalises the jsonb column coming from the database. Uploaded files are shown from their storage
+ * path (the address is rebuilt here), so a memory can never make the site load an outside file.
+ */
 export function parseMedia(value: unknown): MemoryMedia[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item): MemoryMedia[] => {
     if (!item || typeof item !== "object") return [];
     const { type, url, path } = item as Record<string, unknown>;
-    if ((type === "image" || type === "video" || type === "youtube") && typeof url === "string" && safeHttpsUrl(url)) {
-      return [{ type, url, ...(typeof path === "string" ? { path } : {}) }];
+    if (type === "youtube") {
+      return typeof url === "string" && parseYouTube(url) ? [{ type, url }] : [];
+    }
+    if ((type === "image" || type === "video") && typeof path === "string") {
+      const rebuilt = publicMediaUrl(path);
+      return rebuilt ? [{ type, url: rebuilt, path }] : [];
     }
     return [];
   });
@@ -89,7 +116,7 @@ export const memoryFormSchema = z.object({
   title: z.string().trim().min(3, "শিরোনাম কমপক্ষে ৩ অক্ষরের হতে হবে").max(150, "শিরোনাম ১৫০ অক্ষরের মধ্যে হতে হবে"),
   body: z.string().trim().min(10, "স্মৃতি কমপক্ষে ১০ অক্ষরের হতে হবে").max(5000, "স্মৃতি ৫০০০ অক্ষরের মধ্যে হতে হবে"),
   category: z.enum(MEMORY_CATEGORIES),
-  batch_year: z.string().trim().regex(/^(\d{4})?$/, "সঠিক সাল লিখুন (যেমন ২০১৭)"),
+  batch_year: yearField,
   author_name: z.string().trim().max(100, "নাম ১০০ অক্ষরের মধ্যে হতে হবে").optional(),
   youtube: z.string().trim().refine((v) => !v || parseYouTube(v) !== null, "এটি সঠিক YouTube লিংক নয়"),
 });

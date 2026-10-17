@@ -39,13 +39,14 @@ export default function AdminDashboard() {
   }
 
   const adminId = access.user.id;
+  const adminName = (access.user.user_metadata?.full_name as string | undefined) || access.user.email || "অ্যাডমিন";
   const logout = async () => { await supabase.auth.signOut(); navigate("/login"); };
 
   return (
     <AdminShell section={section} onSectionChange={go} counts={counts} isSuperAdmin={access.isSuperAdmin} onLogout={logout}>
       {section === "overview" && <OverviewSection onNavigate={go} />}
       {section === "students" && <StudentsSection />}
-      {section === "memories" && <MemoriesSection adminId={adminId} />}
+      {section === "memories" && <MemoriesSection adminId={adminId} adminName={adminName} />}
       {section === "gallery" && <GallerySection adminId={adminId} />}
       {section === "events" && <EventsSection adminId={adminId} />}
       {section === "notices" && <NoticesSection adminId={adminId} />}

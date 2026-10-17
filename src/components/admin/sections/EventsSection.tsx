@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -33,13 +33,13 @@ type FormValues = z.infer<typeof schema>;
 function EventDialog({ target, adminId, onClose }: { target: EventRow | "new" | null; adminId: string; onClose: () => void }) {
   const { create, update } = useRowMutations("events");
   const editing = target && target !== "new" ? target : null;
-  const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    values: {
+  const initial: FormValues = {
       title: editing?.title ?? "", event_date: editing?.event_date ?? "", event_time: editing?.event_time?.slice(0, 5) ?? "", location: editing?.location ?? "",
       category: editing?.category ?? EVENT_CATEGORIES[0], description: editing?.description ?? "", is_published: editing?.is_published ?? true,
-    },
-  });
+    };
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: initial });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (target) form.reset(initial); }, [target]);
   const errors = form.formState.errors;
 
   const save = form.handleSubmit(async (v) => {

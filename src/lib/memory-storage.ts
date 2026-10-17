@@ -23,8 +23,23 @@ export async function uploadMemoryFile(file: File, userId: string): Promise<Memo
   return { type: isImage ? "image" : "video", url: data.publicUrl, path };
 }
 
-/** Removes uploaded files from storage. Failures are non-fatal: the database row is the source of truth. */
-export async function removeMemoryFiles(media: MemoryMedia[]): Promise<void> {
-  const paths = media.map((m) => m.path).filter((p): p is string => !!p);
+/**
+ * Removes uploaded files from storage. Only files inside `ownerId`'s folder are touched, so a
+ * memory that was tampered with to point at someone else's file can never delete it.
+ * Failures are non-fatal: the database row is the source of truth.
+ */
+export async function removeMemoryFiles(media: MemoryMedia[], ownerId: string): Promise<void> {
+  const paths = media.map((m) => m.path).filter((p): p is string => !!p && p.startsWith(`${ownerId}/`));
   if (paths.length) await supabase.storage.from(MEMORY_BUCKET).remove(paths);
+}
+
+/** Deletes every file a person uploaded (used when their account is removed). Best effort. */
+export async function removeUserMemoryFolder(userId: string): Promise<void> {
+  try {
+    const { data } = await supabase.storage.from(MEMORY_BUCKET).list(userId, { limit: 1000 });
+    const paths = (data ?? []).filter((f) => f.name).map((f) => `${userId}/${f.name}`);
+    if (paths.length) await supabase.storage.from(MEMORY_BUCKET).remove(paths);
+  } catch {
+    /* the account removal must not fail because of cleanup */
+  }
 }

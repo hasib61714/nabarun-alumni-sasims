@@ -57,6 +57,7 @@ export default function About() {
 
       <section className="py-20">
         <div className="container">
+          <h2 className="sr-only">আমাদের লক্ষ্য ও মূল্যবোধ</h2>
           <div className="grid md:grid-cols-3 gap-8">
             {values.map((v, i) => (
               <motion.div

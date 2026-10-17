@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { useConfirm } from "@/components/common/use-confirm";
 import { attempt, useAdminRows, useRowMutations, type Row } from "@/hooks/useAdminData";
 import { downloadCSV, todayStamp, type CsvColumn } from "@/lib/export";
+import { positiveAmount } from "@/lib/forms";
 import { excerpt, formatDate, formatTaka } from "@/lib/format";
 import { ActionButton, CountBubble, ListSkeleton, SearchInput, SectionHeader, Toolbar } from "../AdminCommon";
 
@@ -32,7 +33,7 @@ const donationSchema = z.object({
   donor_name: z.string().trim().min(1, "নাম দিন").max(100),
   donor_phone: z.string().trim().max(20),
   donor_email: z.string().trim().max(255).refine((v) => !v || /^\S+@\S+\.\S+$/.test(v), "সঠিক ইমেইল দিন"),
-  amount: z.string().refine((v) => Number(v) > 0, "০ এর বেশি পরিমাণ দিন"),
+  amount: positiveAmount("০ এর বেশি পরিমাণ দিন"),
   purpose: z.string().trim().max(500),
   campaign_id: z.string(),
   payment_method: z.string(),
@@ -44,14 +45,14 @@ type DonationForm = z.infer<typeof donationSchema>;
 
 function DonationDialog({ donation, campaigns, onClose }: { donation: Donation | null; campaigns: Campaign[]; onClose: () => void }) {
   const { update } = useRowMutations("donations");
-  const form = useForm<DonationForm>({
-    resolver: zodResolver(donationSchema),
-    values: donation ? {
+  const initial: DonationForm | undefined = donation ? {
       donor_name: donation.donor_name, donor_phone: donation.donor_phone ?? "", donor_email: donation.donor_email ?? "", amount: String(donation.amount),
       purpose: donation.purpose ?? "", campaign_id: donation.campaign_id ?? "none", payment_method: donation.payment_method ?? PAYMENT_METHODS[0],
       transaction_id: donation.transaction_id ?? "", status: (donation.status as DonationForm["status"]) ?? "pending", notes: donation.notes ?? "",
-    } : undefined,
-  });
+  } : undefined;
+  const form = useForm<DonationForm>({ resolver: zodResolver(donationSchema), defaultValues: initial });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (initial) form.reset(initial); }, [donation]);
   const errors = form.formState.errors;
   const save = form.handleSubmit(async (v) => {
     if (!donation) return;
@@ -95,7 +96,7 @@ function DonationDialog({ donation, campaigns, onClose }: { donation: Donation |
 const campaignSchema = z.object({
   title: z.string().trim().min(3, "শিরোনাম কমপক্ষে ৩ অক্ষরের হতে হবে").max(150),
   description: z.string().trim().max(2000),
-  goal_amount: z.string().refine((v) => v === "" || Number(v) > 0, "০ এর বেশি লক্ষ্য দিন"),
+  goal_amount: positiveAmount("০ এর বেশি লক্ষ্য দিন", true),
   is_active: z.boolean(),
 });
 type CampaignForm = z.infer<typeof campaignSchema>;
@@ -103,10 +104,10 @@ type CampaignForm = z.infer<typeof campaignSchema>;
 function CampaignDialog({ target, adminId, onClose }: { target: Campaign | "new" | null; adminId: string; onClose: () => void }) {
   const { create, update } = useRowMutations("donation_campaigns");
   const editing = target && target !== "new" ? target : null;
-  const form = useForm<CampaignForm>({
-    resolver: zodResolver(campaignSchema),
-    values: { title: editing?.title ?? "", description: editing?.description ?? "", goal_amount: editing?.goal_amount ? String(editing.goal_amount) : "", is_active: editing?.is_active ?? true },
-  });
+  const initial: CampaignForm = { title: editing?.title ?? "", description: editing?.description ?? "", goal_amount: editing?.goal_amount ? String(editing.goal_amount) : "", is_active: editing?.is_active ?? true };
+  const form = useForm<CampaignForm>({ resolver: zodResolver(campaignSchema), defaultValues: initial });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (target) form.reset(initial); }, [target]);
   const errors = form.formState.errors;
   const save = form.handleSubmit(async (v) => {
     const values = { title: v.title, description: v.description || null, goal_amount: v.goal_amount ? Number(v.goal_amount) : null, is_active: v.is_active };

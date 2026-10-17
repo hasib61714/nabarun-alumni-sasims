@@ -5,6 +5,7 @@ import { Info } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import { useConfirm } from "@/components/common/use-confirm";
 import { FormDialog, Field } from "@/components/common/FormDialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,28 +30,34 @@ interface Props {
 }
 
 const youtubeEntry = (media: MemoryMedia[]) => media.find((m) => m.type === "youtube");
-const toFormValues = (memory: Memory | null | undefined, defaultBatch = ""): MemoryFormValues => ({
+const toFormValues = (memory: Memory | null | undefined, defaultBatch = "", defaultAuthor = ""): MemoryFormValues => ({
   title: memory?.title ?? "",
   body: memory?.body ?? "",
   category: (MEMORY_CATEGORIES as readonly string[]).includes(memory?.category ?? "") ? (memory!.category as MemoryFormValues["category"]) : "অন্যান্য",
   batch_year: memory?.batch_year?.toString() ?? defaultBatch,
-  author_name: memory?.author_name ?? "",
+  author_name: memory?.author_name ?? defaultAuthor,
   youtube: youtubeEntry(memory?.media ?? [])?.url ?? "",
 });
 
 export function MemoryFormDialog({ open, onOpenChange, memory, userId, authorName, defaultBatch, asAdmin, onSaved }: Props) {
-  const form = useForm<MemoryFormValues>({ resolver: zodResolver(memoryFormSchema), defaultValues: toFormValues(memory, defaultBatch) });
+  const form = useForm<MemoryFormValues>({ resolver: zodResolver(memoryFormSchema), defaultValues: toFormValues(memory, defaultBatch, authorName) });
+  const { errors, isDirty } = form.formState;
   const [media, setMedia] = useState<MemoryMedia[]>([]);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const sessionUploads = useRef<MemoryMedia[]>([]);
+  const mediaChanged = useRef(false);
   const saved = useRef(false);
+  const confirm = useConfirm();
+  // every file of a memory lives in its owner's folder (admins may upload there when editing)
+  const folderId = asAdmin && memory ? memory.user_id : userId;
 
   useEffect(() => {
     if (!open) return;
-    form.reset(toFormValues(memory, defaultBatch));
+    form.reset(toFormValues(memory, defaultBatch, authorName));
     setMedia((memory?.media ?? []).filter((m) => m.type !== "youtube"));
     sessionUploads.current = [];
+    mediaChanged.current = false;
     saved.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, memory?.id]);
@@ -59,16 +66,30 @@ export function MemoryFormDialog({ open, onOpenChange, memory, userId, authorNam
   const youtubeId = youtubeValue ? parseYouTube(youtubeValue) : null;
   const bodyLength = form.watch("body")?.length ?? 0;
 
-  const handleOpenChange = (next: boolean) => {
-    if (!next && !saved.current && sessionUploads.current.length) void removeMemoryFiles(sessionUploads.current);
-    onOpenChange(next);
+  const handleOpenChange = async (next: boolean) => {
+    if (next) { onOpenChange(true); return; }
+    if (busy) { toast.info("ফাইল আপলোড শেষ হওয়া পর্যন্ত অপেক্ষা করুন"); return; }
+    const hasUnsaved = !saved.current && (isDirty || sessionUploads.current.length > 0 || mediaChanged.current);
+    if (hasUnsaved) {
+      const discard = await confirm({
+        title: "পরিবর্তন বাতিল করবেন?",
+        description: "আপনি যা লিখেছেন বা আপলোড করেছেন তা সংরক্ষিত হবে না।",
+        confirmLabel: "বাতিল করুন",
+        cancelLabel: "লিখতে থাকুন",
+        destructive: true,
+      });
+      if (!discard) return;
+    }
+    if (!saved.current && sessionUploads.current.length) void removeMemoryFiles(sessionUploads.current, folderId);
+    onOpenChange(false);
   };
 
   const handleRemove = (item: MemoryMedia) => {
     setMedia((prev) => prev.filter((m) => m.url !== item.url));
+    mediaChanged.current = true;
     if (sessionUploads.current.some((m) => m.url === item.url)) {
       sessionUploads.current = sessionUploads.current.filter((m) => m.url !== item.url);
-      void removeMemoryFiles([item]); // never saved, safe to delete right away
+      void removeMemoryFiles([item], folderId); // never saved, safe to delete right away
     }
   };
 
@@ -91,7 +112,13 @@ export function MemoryFormDialog({ open, onOpenChange, memory, userId, authorNam
     setSaving(true);
     const query = memory
       ? supabase.from("memories").update({ ...fields, ...(asAdmin && values.author_name ? { author_name: values.author_name } : {}) }).eq("id", memory.id)
-      : supabase.from("memories").insert({ ...fields, user_id: userId, author_name: authorName || "অজ্ঞাত" });
+      : supabase.from("memories").insert({
+          ...fields,
+          user_id: userId,
+          author_name: (asAdmin && values.author_name) || authorName || "অজ্ঞাত",
+          // a memory an admin writes is published straight away
+          ...(asAdmin ? { status: "approved" } : {}),
+        });
     const { data, error } = await query.select().single();
     setSaving(false);
 
@@ -103,26 +130,25 @@ export function MemoryFormDialog({ open, onOpenChange, memory, userId, authorNam
     // files that were removed from an existing memory are no longer referenced
     const keptUrls = new Set(finalMedia.map((m) => m.url));
     const dropped = (memory?.media ?? []).filter((m) => !keptUrls.has(m.url));
-    if (dropped.length) void removeMemoryFiles(dropped);
+    if (dropped.length) void removeMemoryFiles(dropped, folderId);
 
     const result = toMemory(data);
     toast.success(
-      asAdmin ? "স্মৃতি সংরক্ষিত হয়েছে" : memory ? "পরিবর্তন সংরক্ষিত হয়েছে — অ্যাডমিনের অনুমোদনের পর আবার প্রকাশিত হবে" : "স্মৃতি জমা হয়েছে — অ্যাডমিনের অনুমোদনের পর সবার জন্য প্রকাশিত হবে",
+      asAdmin ? (memory ? "স্মৃতি সংরক্ষিত হয়েছে" : "স্মৃতি প্রকাশিত হয়েছে") : memory ? "পরিবর্তন সংরক্ষিত হয়েছে — অ্যাডমিনের অনুমোদনের পর আবার প্রকাশিত হবে" : "স্মৃতি জমা হয়েছে — অ্যাডমিনের অনুমোদনের পর সবার জন্য প্রকাশিত হবে",
     );
     onSaved(result);
     onOpenChange(false);
   };
 
-  const errors = form.formState.errors;
 
   return (
     <FormDialog
       open={open}
       onOpenChange={handleOpenChange}
       title={memory ? (asAdmin ? "স্মৃতি সম্পাদনা" : "স্মৃতি সম্পাদনা করুন") : "নতুন স্মৃতি লিখুন"}
-      description={asAdmin ? "অ্যাডমিন হিসেবে সম্পাদনা — অবস্থা (status) অপরিবর্তিত থাকবে।" : "আপনার সুন্দর মুহূর্তের গল্প, ছবি বা ভিডিও সবার সাথে শেয়ার করুন।"}
+      description={asAdmin ? (memory ? "অ্যাডমিন হিসেবে সম্পাদনা — অবস্থা অপরিবর্তিত থাকবে।" : "অ্যাডমিন হিসেবে লিখলে স্মৃতিটি সাথে সাথে প্রকাশিত হবে।") : "আপনার সুন্দর মুহূর্তের গল্প, ছবি বা ভিডিও সবার সাথে শেয়ার করুন।"}
       onSubmit={() => form.handleSubmit(save)()}
-      submitLabel={memory ? "সংরক্ষণ করুন" : "জমা দিন"}
+      submitLabel={memory ? "সংরক্ষণ করুন" : asAdmin ? "প্রকাশ করুন" : "জমা দিন"}
       loading={saving}
       wide
     >
@@ -161,7 +187,7 @@ export function MemoryFormDialog({ open, onOpenChange, memory, userId, authorNam
 
       <Field label="ছবি ও ভিডিও (ঐচ্ছিক)">
         <MediaUploader
-          uploaderId={userId}
+          uploaderId={folderId}
           value={media}
           onAdd={(m) => { sessionUploads.current.push(m); setMedia((prev) => [...prev, m]); }}
           onRemove={handleRemove}

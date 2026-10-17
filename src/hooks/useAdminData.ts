@@ -10,7 +10,11 @@ export type UpdateOf<T extends TableName> = Database["public"]["Tables"][T]["Upd
 
 interface Result { error: { message: string } | null }
 interface LooseTable {
-  select(columns: string): { order(column: string, opts: { ascending: boolean }): PromiseLike<Result & { data: unknown[] | null }> };
+  select(columns: string): {
+    order(column: string, opts: { ascending: boolean }): {
+      order(column: string, opts: { ascending: boolean }): { range(from: number, to: number): PromiseLike<Result & { data: unknown[] | null }> };
+    };
+  };
   insert(values: unknown): PromiseLike<Result>;
   update(values: unknown): { eq(column: string, value: unknown): PromiseLike<Result>; in(column: string, values: unknown[]): PromiseLike<Result> };
   delete(): { eq(column: string, value: unknown): PromiseLike<Result> };
@@ -18,6 +22,7 @@ interface LooseTable {
 
 // The table name is chosen at runtime, so go through a small, explicit interface
 // instead of the (very large) union of generated builder types.
+const PAGE_SIZE = 1000;
 const table = (name: TableName) => supabase.from(name) as unknown as LooseTable;
 
 const fail = (error: { message: string } | null) => { if (error) throw new Error(error.message); };
@@ -26,9 +31,15 @@ export function useAdminRows<T extends TableName>(name: T, orderBy: string, asce
   return useQuery({
     queryKey: ["admin", name],
     queryFn: async () => {
-      const { data, error } = await table(name).select("*").order(orderBy, { ascending });
-      fail(error);
-      return (data ?? []) as Row<T>[];
+      // the API returns at most 1000 rows per request: read every page, in a stable order
+      const rows: unknown[] = [];
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await table(name).select("*").order(orderBy, { ascending }).order("id", { ascending: true }).range(from, from + PAGE_SIZE - 1);
+        fail(error);
+        rows.push(...(data ?? []));
+        if (!data || data.length < PAGE_SIZE) break;
+      }
+      return rows as Row<T>[];
     },
   });
 }

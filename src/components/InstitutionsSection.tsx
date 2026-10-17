@@ -47,7 +47,7 @@ export function InstitutionCards() {
 export function InstitutionLogos() {
   return (
     <div className="mt-8 border-t pt-6">
-      <h4 className="mb-4 text-center font-display font-semibold">আমাদের প্রতিষ্ঠান</h4>
+      <h3 className="mb-4 text-center font-display font-semibold">আমাদের প্রতিষ্ঠান</h3>
       <div className="flex flex-wrap items-start justify-center gap-6 md:gap-10">
         {institutions.map((inst) => (
           <Link key={inst.id} to="/about#institutions" className="group flex w-28 flex-col items-center gap-2 text-center">

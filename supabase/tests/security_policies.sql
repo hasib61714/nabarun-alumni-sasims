@@ -218,6 +218,12 @@ BEGIN
     RAISE EXCEPTION 'FAIL: oversized contact message accepted';
   EXCEPTION WHEN check_violation THEN NULL; END;
 
+  BEGIN
+    INSERT INTO public.contact_messages (name, email, subject, message)
+    VALUES ('Spam', 'a@b.co?bcc=evil@x.com', 'Hi', 'mailto parameter injection');
+    RAISE EXCEPTION 'FAIL: contact e-mail with mailto parameters accepted';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+
   INSERT INTO public.contact_messages (name, email, subject, message)
   VALUES ('Visitor', 'visitor@test.local', 'Hello', 'A normal message');
 END $$;
@@ -248,7 +254,7 @@ DECLARE n int; mid uuid;
 BEGIN
   INSERT INTO public.memories (user_id, author_name, title, body, media)
   VALUES (auth.uid(), 'Student', 'My first day', 'I remember the very first day at school.',
-          '[{"type":"image","url":"https://example.com/a.jpg"},{"type":"youtube","url":"https://youtu.be/abcdefghijk"}]')
+          '[{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/a.jpg"},{"type":"video","path":"00000000-0000-0000-0000-0000000000a2/b.mp4"},{"type":"youtube","url":"https://youtu.be/abcdefghijk"}]')
   RETURNING id INTO mid;
 
   BEGIN
@@ -265,14 +271,38 @@ BEGIN
 
   BEGIN
     INSERT INTO public.memories (user_id, author_name, title, body, media)
-    VALUES (auth.uid(), 'Student', 'Bad media', 'Media with an insecure url.', '[{"type":"image","url":"http://insecure.example/a.jpg"}]');
-    RAISE EXCEPTION 'FAIL: non-https media accepted';
+    VALUES (auth.uid(), 'Student', 'Foreign file', 'Media that must be refused.', '[{"type":"image","path":"00000000-0000-0000-0000-0000000000a4/their.jpg"}]');
+    RAISE EXCEPTION 'FAIL: memory points at another user''s file';
   EXCEPTION WHEN check_violation THEN NULL; END;
 
   BEGIN
     INSERT INTO public.memories (user_id, author_name, title, body, media)
-    VALUES (auth.uid(), 'Student', 'Script media', 'Media with a script url.', '[{"type":"image","url":"javascript:alert(1)"}]');
+    VALUES (auth.uid(), 'Student', 'Outside host', 'Media that must be refused.', '[{"type":"image","url":"https://evil.example/a.jpg"}]');
+    RAISE EXCEPTION 'FAIL: external image url accepted (no storage path)';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+
+  BEGIN
+    INSERT INTO public.memories (user_id, author_name, title, body, media)
+    VALUES (auth.uid(), 'Student', 'Script url', 'Media that must be refused.', '[{"type":"image","url":"javascript:alert(1)"}]');
     RAISE EXCEPTION 'FAIL: javascript: media url accepted';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+
+  BEGIN
+    INSERT INTO public.memories (user_id, author_name, title, body, media)
+    VALUES (auth.uid(), 'Student', 'Path trick', 'Media that must be refused.', '[{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/../00000000-0000-0000-0000-0000000000a4/their.jpg"}]');
+    RAISE EXCEPTION 'FAIL: path traversal accepted';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+
+  BEGIN
+    INSERT INTO public.memories (user_id, author_name, title, body, media)
+    VALUES (auth.uid(), 'Student', 'Odd youtube', 'Media that must be refused.', '[{"type":"youtube","url":"https://evil.example/watch?v=abcdefghijk"}]');
+    RAISE EXCEPTION 'FAIL: non-YouTube video url accepted';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+
+  BEGIN
+    INSERT INTO public.memories (user_id, author_name, title, body, media)
+    VALUES (auth.uid(), 'Student', 'Too many', 'Media that must be refused.', '[{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/0.jpg"},{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/1.jpg"},{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/2.jpg"},{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/3.jpg"},{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/4.jpg"},{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/5.jpg"},{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/6.jpg"},{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/7.jpg"},{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/8.jpg"},{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/9.jpg"},{"type":"image","path":"00000000-0000-0000-0000-0000000000a2/10.jpg"}]');
+    RAISE EXCEPTION 'FAIL: more than 10 media items accepted';
   EXCEPTION WHEN check_violation THEN NULL; END;
 
   BEGIN
@@ -470,9 +500,16 @@ BEGIN
       AND allowed_mime_types @> ARRAY['image/png', 'video/mp4']
   ) THEN RAISE EXCEPTION 'FAIL: memories bucket is not configured'; END IF;
   IF (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects'
-        AND policyname IN ('Users can upload own memory media', 'Users can delete own memory media', 'Admins can delete memory media')) <> 3 THEN
+        AND policyname IN ('Users can upload own memory media', 'Users can delete own memory media', 'Admins can delete memory media',
+                           'Admins can upload memory media', 'Owners and admins can view memory media')) <> 5 THEN
     RAISE EXCEPTION 'FAIL: memory media storage policies are missing';
   END IF;
+  -- nobody (anon / public) may LIST the files of the memories bucket
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects' AND cmd IN ('SELECT', 'ALL')
+      AND qual ILIKE '%memories%' AND (roles && ARRAY['public', 'anon']::name[])
+  ) THEN RAISE EXCEPTION 'FAIL: the memories bucket can be listed by anonymous users'; END IF;
 END $$;
 
 ROLLBACK;

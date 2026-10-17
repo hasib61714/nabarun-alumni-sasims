@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,6 +12,7 @@ import { ResponsiveTable, type Column } from "@/components/common/ResponsiveTabl
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { useConfirm } from "@/components/common/use-confirm";
 import { attempt, useAdminRows, useRowMutations, type Row } from "@/hooks/useAdminData";
+import { yearField } from "@/lib/forms";
 import { excerpt, formatDate, initialsOf } from "@/lib/format";
 import { safeHttpsUrl } from "@/lib/memories";
 import { ActionButton, ListSkeleton, SectionHeader } from "../AdminCommon";
@@ -20,7 +21,7 @@ type Testimonial = Row<"testimonials">;
 
 const schema = z.object({
   name: z.string().trim().min(1, "নাম দিন").max(100),
-  batch_year: z.string().trim().regex(/^(\d{4})?$/, "সঠিক সাল লিখুন"),
+  batch_year: yearField,
   profession: z.string().trim().max(120),
   message: z.string().trim().min(10, "কমপক্ষে ১০ অক্ষর লিখুন").max(500, "৫০০ অক্ষরের মধ্যে লিখুন"),
 });
@@ -28,10 +29,10 @@ type FormValues = z.infer<typeof schema>;
 
 function EditDialog({ item, onClose }: { item: Testimonial | null; onClose: () => void }) {
   const { update } = useRowMutations("testimonials");
-  const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    values: item ? { name: item.name, batch_year: item.batch_year?.toString() ?? "", profession: item.profession ?? "", message: item.message } : undefined,
-  });
+  const initial: FormValues | undefined = item ? { name: item.name, batch_year: item.batch_year?.toString() ?? "", profession: item.profession ?? "", message: item.message } : undefined;
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: initial });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (initial) form.reset(initial); }, [item]);
   const errors = form.formState.errors;
   const save = form.handleSubmit(async (v) => {
     if (!item) return;
