@@ -1,14 +1,13 @@
 -- Security regression tests for the RLS policies and triggers.
 --
--- Run against a LOCAL or DEV database that has all migrations applied
--- (never production), for example:
+-- Run it against a database that has all migrations applied. Everything runs
+-- inside one transaction that is rolled back at the end, so no data is kept.
 --
---   psql "$DATABASE_URL" -f supabase/tests/security_policies.sql
+--   Supabase dashboard: SQL Editor -> paste this whole file -> Run.
+--       Result "ALL SECURITY CHECKS PASSED" = good. An error that says
+--       "FAIL: ..." names the broken protection. After an error, run ROLLBACK;
+--   psql:  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/security_policies.sql
 --
--- Everything runs inside one transaction that is rolled back at the end, so
--- no data is left behind. Any failed check aborts the script with "FAIL: ...".
-
-\set ON_ERROR_STOP on
 BEGIN;
 
 -- Fixtures: admin, student, super admin, and a second student.
@@ -31,9 +30,7 @@ INSERT INTO public.donations (donor_name, amount, status) VALUES
 -- 1. An ordinary admin cannot touch roles (privilege escalation)
 -- ===========================================================================
 SET LOCAL ROLE authenticated;
-SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', true),
-       set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true)
-\gset
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true); END $$;
 
 DO $$
 DECLARE n int;
@@ -59,9 +56,7 @@ END $$;
 -- ===========================================================================
 -- 2. A super admin can grant and revoke admin
 -- ===========================================================================
-SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a3', true),
-       set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a3","role":"authenticated"}', true)
-\gset
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a3', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a3","role":"authenticated"}', true); END $$;
 
 DO $$
 DECLARE n int;
@@ -82,9 +77,7 @@ END $$;
 -- ===========================================================================
 -- 3. A student cannot approve their own profile, but can edit the rest
 -- ===========================================================================
-SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a2', true),
-       set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a2","role":"authenticated"}', true)
-\gset
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a2', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a2","role":"authenticated"}', true); END $$;
 
 DO $$
 DECLARE n int;
@@ -117,9 +110,7 @@ BEGIN
 END $$;
 
 -- An admin can approve
-SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', true),
-       set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true)
-\gset
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true); END $$;
 DO $$
 DECLARE n int;
 BEGIN
@@ -130,9 +121,7 @@ BEGIN
 END $$;
 
 -- A student whose profile was deleted cannot re-create it as approved
-SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a4', true),
-       set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a4","role":"authenticated"}', true)
-\gset
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a4', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a4","role":"authenticated"}', true); END $$;
 RESET ROLE;
 DELETE FROM public.student_profiles WHERE user_id = '00000000-0000-0000-0000-0000000000a4';
 SET LOCAL ROLE authenticated;
@@ -148,9 +137,7 @@ END $$;
 -- ===========================================================================
 -- 4. Testimonials: cannot be pre-approved or written as someone else
 -- ===========================================================================
-SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a2', true),
-       set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a2","role":"authenticated"}', true)
-\gset
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a2', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a2","role":"authenticated"}', true); END $$;
 DO $$
 BEGIN
   BEGIN
@@ -179,8 +166,7 @@ END $$;
 -- ===========================================================================
 RESET ROLE;
 SET LOCAL ROLE anon;
-SELECT set_config('request.jwt.claim.sub', '', true), set_config('request.jwt.claims', '{"role":"anon"}', true)
-\gset
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '', true), set_config('request.jwt.claims', '{"role":"anon"}', true); END $$;
 DO $$
 DECLARE n int; t numeric;
 BEGIN
@@ -253,4 +239,4 @@ BEGIN
 END $$;
 
 ROLLBACK;
-\echo ALL SECURITY CHECKS PASSED
+SELECT 'ALL SECURITY CHECKS PASSED' AS result;

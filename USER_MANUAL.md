@@ -242,7 +242,7 @@
 
 > ⚠️ প্রথম ফাইলটি আলাদাভাবে চালাতে হবে — একই সাথে মিলিয়ে চালালে `unsafe use of new value "super_admin"` error আসবে। আগে একসাথে চালিয়ে থাকলেও ফাইলগুলো আবার চালানো নিরাপদ।
 
-**Migration-এর পর (ঐচ্ছিক কিন্তু সুপারিশকৃত):** ডেভেলপমেন্ট ডাটাবেসে `psql "$DATABASE_URL" -f supabase/tests/security_policies.sql` চালিয়ে নিরাপত্তা পরীক্ষা করুন। শেষে `ALL SECURITY CHECKS PASSED` দেখালে ঠিক আছে। (প্রোডাকশনে চালাবেন না।)
+**Migration-এর পর (সুপারিশকৃত):** [supabase/tests/security_policies.sql](supabase/tests/security_policies.sql) ফাইলের পুরো SQL Supabase SQL Editor এ paste করে Run করুন। শেষে `ALL SECURITY CHECKS PASSED` দেখালে নিরাপত্তা ঠিক আছে। কোনো ডেটা সংরক্ষিত হয় না (সব rollback হয়)। Error এলে `ROLLBACK;` একবার চালান।
 
 ### ধাপ ২ — সুপার অ্যাডমিন রেজিস্টার করুন
 
