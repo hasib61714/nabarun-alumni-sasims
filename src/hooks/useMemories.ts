@@ -80,3 +80,16 @@ export function useRecentMemories(limit = 3, excludeId?: string) {
     staleTime: 60_000,
   });
 }
+
+/** The signed-in user's own memories, newest first (any status). */
+export function useMyMemories(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["memories", "mine", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("memories").select("*").eq("user_id", userId!).order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map(toMemory);
+    },
+  });
+}

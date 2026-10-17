@@ -18,7 +18,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { useConfirm } from "@/components/common/use-confirm";
 import { attempt, useAdminRows, useRowMutations, type Row } from "@/hooks/useAdminData";
 import { downloadCSV, todayStamp, type CsvColumn } from "@/lib/export";
-import { yearField } from "@/lib/forms";
+import { optionalUrl, yearField } from "@/lib/forms";
 import { removeUserMemoryFolder } from "@/lib/memory-storage";
 import { formatDate, initialsOf } from "@/lib/format";
 import { safeHttpsUrl } from "@/lib/memories";
@@ -27,7 +27,6 @@ import { ActionButton, ListSkeleton, Pager, SearchInput, SectionHeader, Toolbar 
 
 type Student = Row<"student_profiles">;
 
-const optionalUrl = z.string().trim().max(300).refine((v) => !v || /^https?:\/\//i.test(v), "https:// দিয়ে শুরু হওয়া লিংক দিন");
 const schema = z.object({
   full_name: z.string().trim().min(1, "নাম দিন").max(100),
   roll: z.string().trim().max(30),

@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import PublicLayout from "./components/PublicLayout";
 import Index from "./pages/Index";
 import About from "./pages/About";
@@ -27,7 +27,6 @@ import { ConfirmProvider } from "./components/common/ConfirmDialog";
 
 const StudentDashboard = lazy(() => import("./pages/student/Dashboard"));
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
-const SuperAdminDashboard = lazy(() => import("./pages/admin/SuperAdminDashboard"));
 
 const queryClient = new QueryClient();
 
@@ -67,7 +66,7 @@ const App = () => (
             <Route path="/dashboard" element={<DashboardRouter />} />
             <Route path="/student/dashboard" element={<StudentDashboard />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/super-admin" element={<SuperAdminDashboard />} />
+            <Route path="/super-admin" element={<Navigate to="/admin/dashboard?tab=admins" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>

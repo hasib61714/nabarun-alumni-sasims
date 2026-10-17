@@ -58,7 +58,7 @@ SASIMS is a comprehensive **alumni management system** built for the Nabarun Edu
 | 📖 **Memories** | Students share stories, photos and videos; admins approve before they go public |
 | 🧰 **Admin Panel** | Responsive panel to create, edit, delete and approve everything, with CSV exports and a one-click JSON backup |
 | 📩 **Contact** | Public contact form with admin inbox |
-| 🛡️ **Role-Based Access** | Separate dashboards for Admin and Student |
+| 🛡️ **Role-Based Access** | App-style dashboards for Students (overview, profile editor, memories, notices, settings) and Admins; super admins also manage admin accounts with emails |
 
 ---
 

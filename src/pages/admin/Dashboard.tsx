@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ADMIN_SECTIONS, type SectionId } from "@/components/admin/adminSections";
+import AdminsSection from "@/components/admin/sections/AdminsSection";
 import DonationsSection from "@/components/admin/sections/DonationsSection";
 import EventsSection from "@/components/admin/sections/EventsSection";
 import GallerySection from "@/components/admin/sections/GallerySection";
@@ -28,7 +29,8 @@ export default function AdminDashboard() {
   const { data: counts } = useAdminCounts(access.status === "ok");
 
   const tab = params.get("tab");
-  const section: SectionId = isSection(tab) ? tab : "overview";
+  const requested: SectionId = isSection(tab) ? tab : "overview";
+  const section: SectionId = requested === "admins" && access.status === "ok" && !access.isSuperAdmin ? "overview" : requested;
   const go = (id: SectionId) => {
     setParams({ tab: id }, { replace: false });
     window.scrollTo({ top: 0 });
@@ -43,7 +45,7 @@ export default function AdminDashboard() {
   const logout = async () => { await supabase.auth.signOut(); navigate("/login"); };
 
   return (
-    <AdminShell section={section} onSectionChange={go} counts={counts} isSuperAdmin={access.isSuperAdmin} onLogout={logout}>
+    <AdminShell section={section} onSectionChange={go} counts={counts} isSuperAdmin={access.isSuperAdmin} adminName={adminName} onLogout={logout}>
       {section === "overview" && <OverviewSection onNavigate={go} />}
       {section === "students" && <StudentsSection />}
       {section === "memories" && <MemoriesSection adminId={adminId} adminName={adminName} />}
@@ -53,6 +55,7 @@ export default function AdminDashboard() {
       {section === "donations" && <DonationsSection adminId={adminId} />}
       {section === "testimonials" && <TestimonialsSection />}
       {section === "messages" && <MessagesSection />}
+      {section === "admins" && <AdminsSection currentUserId={adminId} />}
       {section === "analytics" && <Suspense fallback={<ListSkeleton rows={3} />}><AnalyticsSection /></Suspense>}
     </AdminShell>
   );

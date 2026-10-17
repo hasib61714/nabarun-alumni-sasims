@@ -107,12 +107,15 @@ export function useAdminCounts(enabled = true) {
     refetchInterval: 60_000,
     queryFn: async (): Promise<AdminCounts> => {
       const head = { count: "exact", head: true } as const;
+      const settle = async (query: PromiseLike<{ count: number | null; error: { message: string } | null }>) => {
+        try { return await countOf(query); } catch { return 0; } // e.g. a table that has not been created yet
+      };
       const [pendingStudents, pendingMemories, pendingTestimonials, pendingDonations, unreadMessages] = await Promise.all([
-        countOf(supabase.from("student_profiles").select("user_id", head).or("is_approved.is.null,is_approved.eq.false")),
-        countOf(supabase.from("memories").select("id", head).eq("status", "pending")),
-        countOf(supabase.from("testimonials").select("id", head).or("is_approved.is.null,is_approved.eq.false")),
-        countOf(supabase.from("donations").select("id", head).eq("status", "pending")),
-        countOf(supabase.from("contact_messages").select("id", head).or("is_read.is.null,is_read.eq.false")),
+        settle(supabase.from("student_profiles").select("user_id", head).or("is_approved.is.null,is_approved.eq.false")),
+        settle(supabase.from("memories").select("id", head).eq("status", "pending")),
+        settle(supabase.from("testimonials").select("id", head).or("is_approved.is.null,is_approved.eq.false")),
+        settle(supabase.from("donations").select("id", head).eq("status", "pending")),
+        settle(supabase.from("contact_messages").select("id", head).or("is_read.is.null,is_read.eq.false")),
       ]);
       return { pendingStudents, pendingMemories, pendingTestimonials, pendingDonations, unreadMessages };
     },

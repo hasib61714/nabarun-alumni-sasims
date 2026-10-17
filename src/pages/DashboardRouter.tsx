@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 const StudentDashboard = lazy(() => import("./student/Dashboard"));
 const AdminDashboard = lazy(() => import("./admin/Dashboard"));
-const SuperAdminDashboard = lazy(() => import("./admin/SuperAdminDashboard"));
 
 export default function DashboardRouter() {
   const navigate = useNavigate();
@@ -43,7 +42,7 @@ export default function DashboardRouter() {
   if (loading) return <div className="flex items-center justify-center min-h-screen text-muted-foreground">Loading...</div>;
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-muted-foreground">Loading...</div>}>
-      {role === "super_admin" ? <SuperAdminDashboard /> : role === "admin" ? <AdminDashboard /> : <StudentDashboard />}
+      {role === "student" ? <StudentDashboard /> : <AdminDashboard />}
     </Suspense>
   );
 }
