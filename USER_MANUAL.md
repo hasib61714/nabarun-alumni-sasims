@@ -232,30 +232,38 @@
 
 ### ধাপ ১ — Migration চালান
 
-Supabase Dashboard → SQL Editor এ [supabase/migrations/20260305000000_add_super_admin_role.sql](supabase/migrations/20260305000000_add_super_admin_role.sql) ফাইলের সম্পূর্ণ SQL paste করে Run করুন।
+[supabase/migrations](supabase/migrations) ফোল্ডারের **সব** ফাইল তারিখ অনুযায়ী (পুরোনো থেকে নতুন) ক্রমে চালাতে হবে।
+
+- **Supabase CLI দিয়ে (সুপারিশকৃত):** `supabase link --project-ref <আপনার-project-id>` তারপর `supabase db push`
+- **SQL Editor দিয়ে:** প্রতিটি ফাইল আলাদা আলাদাভাবে, ক্রমানুসারে paste করে Run করুন। শেষের তিনটি ফাইল অবশ্যই এই ক্রমে চালাবেন:
+  1. `20260305000000_add_super_admin_role.sql`
+  2. `20260305000001_super_admin_policies.sql`
+  3. `20260306000000_security_hardening.sql`
+
+> ⚠️ প্রথম ফাইলটি আলাদাভাবে চালাতে হবে — একই সাথে মিলিয়ে চালালে `unsafe use of new value "super_admin"` error আসবে। আগে একসাথে চালিয়ে থাকলেও ফাইলগুলো আবার চালানো নিরাপদ।
+
+**Migration-এর পর (ঐচ্ছিক কিন্তু সুপারিশকৃত):** ডেভেলপমেন্ট ডাটাবেসে `psql "$DATABASE_URL" -f supabase/tests/security_policies.sql` চালিয়ে নিরাপত্তা পরীক্ষা করুন। শেষে `ALL SECURITY CHECKS PASSED` দেখালে ঠিক আছে। (প্রোডাকশনে চালাবেন না।)
 
 ### ধাপ ২ — সুপার অ্যাডমিন রেজিস্টার করুন
 
 `/register` পেজে গিয়ে আপনার ইমেইল/পাসওয়ার্ড দিয়ে একটি account তৈরি করুন।
 
-### ধাপ ৩ — User ID বের করুন
+### ধাপ ৩ — সুপার অ্যাডমিন রোল দিন
 
-Supabase → Authentication → Users → আপনার ইমেইলের পাশের UUID কপি করুন।
-
-### ধাপ ৪ — সুপার অ্যাডমিন রোল দিন
-
-Supabase SQL Editor এ চালান:
+Supabase SQL Editor এ চালান (ইমেইলের জায়গায় ধাপ ২-এ ব্যবহৃত ইমেইল দিন):
 
 ```sql
 INSERT INTO public.user_roles (user_id, role)
-VALUES ('আপনার-UUID-এখানে', 'super_admin');
+SELECT id, 'super_admin' FROM auth.users WHERE email = 'আপনার-ইমেইল@example.com';
 ```
 
-### ধাপ ৫ — লগইন করুন
+"INSERT 0 1" দেখালে সফল হয়েছে। "INSERT 0 0" দেখালে ইমেইল ভুল বা অ্যাকাউন্ট এখনো তৈরি/কনফার্ম হয়নি।
+
+### ধাপ ৪ — লগইন করুন
 
 `/login` → **"অ্যাডমিন লগইন"** ট্যাব → ইমেইল/পাসওয়ার্ড → Super Admin Dashboard।
 
-### ধাপ ৬ — অন্যদের অ্যাডমিন বানান
+### ধাপ ৫ — অন্যদের অ্যাডমিন বানান
 
 Super Admin Dashboard থেকে যে ছাত্রকে অ্যাডমিন করতে চান তাকে **"অ্যাডমিন করুন"** বাটনে ক্লিক করুন।
 

@@ -348,6 +348,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_donation_totals: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          campaign_id: string | null
+          total: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

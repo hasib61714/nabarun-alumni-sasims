@@ -37,9 +37,10 @@ export default function SuperAdminDashboard() {
 
   const checkSuperAdmin = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { navigate("/login"); return; }
+    if (!session) { navigate("/login"); return false; }
     const { data } = await supabase.rpc("has_role", { _user_id: session.user.id, _role: "super_admin" });
-    if (!data) { toast.error("সুপার অ্যাডমিন অ্যাক্সেস প্রয়োজন"); navigate("/dashboard"); }
+    if (!data) { toast.error("সুপার অ্যাডমিন অ্যাক্সেস প্রয়োজন"); navigate("/dashboard"); return false; }
+    return true;
   }, [navigate]);
 
   const loadUsers = useCallback(async () => {
@@ -72,8 +73,7 @@ export default function SuperAdminDashboard() {
   }, []);
 
   useEffect(() => {
-    checkSuperAdmin();
-    loadUsers();
+    checkSuperAdmin().then((allowed) => { if (allowed) loadUsers(); });
   }, [checkSuperAdmin, loadUsers]);
 
   const handleLogout = async () => {
