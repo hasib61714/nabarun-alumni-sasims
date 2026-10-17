@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { asciiDigits } from "@/lib/forms";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -60,7 +61,8 @@ export default function Donations() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.donor_name || !form.amount || Number(form.amount) <= 0) {
+    const amount = Number(asciiDigits(form.amount).trim());
+    if (!form.donor_name || !amount || amount <= 0) {
       toast.error("নাম ও পরিমাণ অবশ্যই দিন");
       return;
     }
@@ -69,7 +71,7 @@ export default function Donations() {
       donor_name: form.donor_name.trim(),
       donor_email: form.donor_email.trim() || null,
       donor_phone: form.donor_phone.trim() || null,
-      amount: Number(form.amount),
+      amount,
       purpose: form.purpose.trim() || null,
       campaign_id: selectedCampaign || null,
       payment_method: form.payment_method,
@@ -151,7 +153,7 @@ export default function Donations() {
                       {c.description && <p className="text-sm text-muted-foreground mb-3">{c.description}</p>}
                       {c.goal_amount && (
                         <div className="space-y-2">
-                          <Progress value={progress} className="h-2" />
+                          <Progress value={progress} className="h-2" aria-label={`${c.title} — অগ্রগতি`} />
                           <div className="flex justify-between text-xs text-muted-foreground">
                             <span>৳{raised.toLocaleString("bn-BD")} সংগৃহীত</span>
                             <span>লক্ষ্য: ৳{c.goal_amount.toLocaleString("bn-BD")}</span>
@@ -217,7 +219,7 @@ export default function Donations() {
                   <div className="space-y-2">
                     <Label>পেমেন্ট মাধ্যম</Label>
                     <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger aria-label="পেমেন্ট মাধ্যম"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                       </SelectContent>

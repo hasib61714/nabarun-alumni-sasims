@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import StudentDashboard from "./student/Dashboard";
-import AdminDashboard from "./admin/Dashboard";
-import SuperAdminDashboard from "./admin/SuperAdminDashboard";
+
+const StudentDashboard = lazy(() => import("./student/Dashboard"));
+const AdminDashboard = lazy(() => import("./admin/Dashboard"));
+const SuperAdminDashboard = lazy(() => import("./admin/SuperAdminDashboard"));
 
 export default function DashboardRouter() {
   const navigate = useNavigate();
@@ -40,7 +41,9 @@ export default function DashboardRouter() {
   }, [navigate]);
 
   if (loading) return <div className="flex items-center justify-center min-h-screen text-muted-foreground">Loading...</div>;
-  if (role === "super_admin") return <SuperAdminDashboard />;
-  if (role === "admin") return <AdminDashboard />;
-  return <StudentDashboard />;
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-muted-foreground">Loading...</div>}>
+      {role === "super_admin" ? <SuperAdminDashboard /> : role === "admin" ? <AdminDashboard /> : <StudentDashboard />}
+    </Suspense>
+  );
 }

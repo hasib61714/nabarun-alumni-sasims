@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,11 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MyMemories from "@/components/student/MyMemories";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { User, BookOpen, Award, Briefcase, LogOut, Save, Camera, Home, Linkedin, Facebook, KeyRound, Bell, CheckCircle, AlertCircle, MapPin, MessageSquareQuote, Send } from "lucide-react";
+import { User, BookOpen, Award, Briefcase, LogOut, Save, Camera, Home, Linkedin, Facebook, KeyRound, Bell, CheckCircle, AlertCircle, MapPin, MessageSquareQuote, Send, BookHeart } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import nabarunLogo from "@/assets/nabarun-logo.png";
 
@@ -25,6 +27,9 @@ interface Notice {
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") === "memories" ? "memories" : "profile";
+  const setTab = (tab: string) => { const next = new URLSearchParams(searchParams); next.set("tab", tab); next.delete("new"); setSearchParams(next, { replace: true }); };
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [user, setUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -210,7 +215,7 @@ export default function StudentDashboard() {
         </div>
       </header>
 
-      <div className="container py-8 max-w-4xl">
+      <main className="container py-8 max-w-4xl">
         {/* Profile Header */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
           <Card className="shadow-elevated mb-8 overflow-hidden">
@@ -222,7 +227,7 @@ export default function StudentDashboard() {
                     {photoUrl ? <AvatarImage src={photoUrl} alt="Profile" /> : null}
                     <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">{initials}</AvatarFallback>
                   </Avatar>
-                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="absolute inset-0 rounded-full bg-foreground/0 group-hover:bg-foreground/40 flex items-center justify-center transition-colors cursor-pointer">
+                  <button type="button" aria-label="প্রোফাইল ছবি পরিবর্তন করুন" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="absolute inset-0 rounded-full bg-foreground/0 group-hover:bg-foreground/40 flex items-center justify-center transition-colors cursor-pointer">
                     <Camera className="h-6 w-6 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                   <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
@@ -246,155 +251,175 @@ export default function StudentDashboard() {
                   <span className="text-muted-foreground">প্রোফাইল সম্পূর্ণতা</span>
                   <span className="font-semibold text-primary">{completeness}%</span>
                 </div>
-                <Progress value={completeness} className="h-2" />
+                <Progress value={completeness} className="h-2" aria-label="প্রোফাইল সম্পূর্ণতা" />
                 {completeness < 100 && <p className="text-xs text-muted-foreground mt-1">সব তথ্য পূরণ করলে অনুমোদন দ্রুত হবে।</p>}
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Notices */}
-        {notices.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-            <Card className="shadow-card mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg"><Bell className="h-5 w-5 text-accent" /> সাম্প্রতিক নোটিশ</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {notices.map((n) => (
-                  <div key={n.id} className="flex items-start gap-2 text-sm p-2 rounded-md hover:bg-muted/50 transition-colors">
-                    <span className="text-accent mt-0.5">📌</span>
-                    <div>
-                      <p className="font-medium">{n.title}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(n.created_at).toLocaleDateString("bn-BD")}</p>
+        <Tabs value={activeTab} onValueChange={setTab} className="space-y-6">
+          <TabsList className="grid h-auto w-full grid-cols-2 p-1">
+            <TabsTrigger value="profile" className="gap-1.5 py-2"><User className="h-4 w-4" /> আমার প্রোফাইল</TabsTrigger>
+            <TabsTrigger value="memories" className="gap-1.5 py-2"><BookHeart className="h-4 w-4" /> আমার স্মৃতি</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile" className="mt-0 space-y-6">
+            <h2 className="sr-only">প্রোফাইলের তথ্য</h2>
+            {/* Notices */}
+            {notices.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+                <Card className="shadow-card mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg"><Bell className="h-5 w-5 text-accent" /> সাম্প্রতিক নোটিশ</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {notices.map((n) => (
+                      <div key={n.id} className="flex items-start gap-2 text-sm p-2 rounded-md hover:bg-muted/50 transition-colors">
+                        <span className="text-accent mt-0.5">📌</span>
+                        <div>
+                          <p className="font-medium">{n.title}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(n.created_at).toLocaleDateString("bn-BD")}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            <div className="grid gap-6">
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg"><User className="h-5 w-5 text-primary" /> ব্যক্তিগত তথ্য</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>পূর্ণ নাম</Label>
+                      <Input value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} placeholder="আপনার পূর্ণ নাম" />
                     </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        <div className="grid gap-6">
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg"><User className="h-5 w-5 text-primary" /> ব্যক্তিগত তথ্য</CardTitle>
-              </CardHeader>
-              <CardContent className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>পূর্ণ নাম</Label>
-                  <Input value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} placeholder="আপনার পূর্ণ নাম" />
-                </div>
-                <div className="space-y-2">
-                  <Label>রোল নম্বর</Label>
-                  <Input value={profile.roll} onChange={(e) => setProfile({ ...profile, roll: e.target.value })} placeholder="যেমন: ১০১" />
-                </div>
-                <div className="space-y-2">
-                  <Label>ব্যাচ বছর</Label>
-                  <Input value={profile.batch_year} onChange={(e) => setProfile({ ...profile, batch_year: e.target.value })} placeholder="যেমন: ২০২০" type="number" />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg"><BookOpen className="h-5 w-5 text-primary" /> একাডেমিক ফলাফল</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea value={profile.result} onChange={(e) => setProfile({ ...profile, result: e.target.value })} placeholder="SSC: GPA 5.0, HSC: GPA 5.0, চূড়ান্ত পরীক্ষা: প্রথম শ্রেণি..." rows={3} />
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg"><Award className="h-5 w-5 text-primary" /> অর্জনসমূহ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea value={profile.achievement} onChange={(e) => setProfile({ ...profile, achievement: e.target.value })} placeholder="পুরস্কার, সম্মাননা, প্রতিযোগিতা..." rows={3} />
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg"><Briefcase className="h-5 w-5 text-primary" /> পেশাগত তথ্য</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>বর্তমান পেশা</Label>
-                    <Input value={profile.current_profession} onChange={(e) => setProfile({ ...profile, current_profession: e.target.value })} placeholder="যেমন: সফটওয়্যার ইঞ্জিনিয়ার" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>উচ্চশিক্ষা</Label>
-                    <Input value={profile.higher_study} onChange={(e) => setProfile({ ...profile, higher_study: e.target.value })} placeholder="যেমন: MSc in CSE, BUET" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> অবস্থান</Label>
-                  <Input value={profile.location} onChange={(e) => setProfile({ ...profile, location: e.target.value })} placeholder="যেমন: ঢাকা, বাংলাদেশ" />
-                </div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1"><Linkedin className="h-3.5 w-3.5" /> LinkedIn</Label>
-                    <Input value={profile.linkedin_link} onChange={(e) => setProfile({ ...profile, linkedin_link: e.target.value })} placeholder="https://linkedin.com/in/..." />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1"><Facebook className="h-3.5 w-3.5" /> Facebook</Label>
-                    <Input value={profile.facebook_link} onChange={(e) => setProfile({ ...profile, facebook_link: e.target.value })} placeholder="https://facebook.com/..." />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Testimonial */}
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg"><MessageSquareQuote className="h-5 w-5 text-primary" /> আপনার মতামত</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {hasSubmittedTestimonial ? (
-                  <div className="text-center py-4">
-                    <CheckCircle className="h-8 w-8 text-primary mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">আপনার মতামত জমা দেওয়া হয়েছে। অ্যাডমিন অনুমোদনের পর হোম পেজে প্রদর্শিত হবে।</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">নবারুণ সম্পর্কে আপনার অভিজ্ঞতা শেয়ার করুন। অনুমোদনের পর হোম পেজে দেখানো হবে।</p>
-                    <Textarea
-                      value={testimonialMsg}
-                      onChange={(e) => setTestimonialMsg(e.target.value)}
-                      placeholder="নবারুণ আমার জীবনে যে প্রভাব ফেলেছে..."
-                      rows={3}
-                      maxLength={500}
-                    />
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">{testimonialMsg.length}/৫০০</span>
-                      <Button onClick={handleSubmitTestimonial} disabled={submittingTestimonial} size="sm">
-                        <Send className="mr-1 h-4 w-4" /> {submittingTestimonial ? "জমা হচ্ছে..." : "মতামত জমা দিন"}
-                      </Button>
+                    <div className="space-y-2">
+                      <Label>রোল নম্বর</Label>
+                      <Input value={profile.roll} onChange={(e) => setProfile({ ...profile, roll: e.target.value })} placeholder="যেমন: ১০১" />
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+                    <div className="space-y-2">
+                      <Label>ব্যাচ বছর</Label>
+                      <Input value={profile.batch_year} onChange={(e) => setProfile({ ...profile, batch_year: e.target.value })} placeholder="যেমন: ২০২০" type="number" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-            <Button onClick={handleSave} size="lg" className="w-full" disabled={saving}>
-              <Save className="mr-2 h-4 w-4" /> {saving ? "সংরক্ষণ হচ্ছে..." : "প্রোফাইল সংরক্ষণ করুন"}
-            </Button>
-          </motion.div>
-        </div>
-      </div>
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg"><BookOpen className="h-5 w-5 text-primary" /> একাডেমিক ফলাফল</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea value={profile.result} onChange={(e) => setProfile({ ...profile, result: e.target.value })} placeholder="SSC: GPA 5.0, HSC: GPA 5.0, চূড়ান্ত পরীক্ষা: প্রথম শ্রেণি..." rows={3} />
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg"><Award className="h-5 w-5 text-primary" /> অর্জনসমূহ</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea value={profile.achievement} onChange={(e) => setProfile({ ...profile, achievement: e.target.value })} placeholder="পুরস্কার, সম্মাননা, প্রতিযোগিতা..." rows={3} />
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg"><Briefcase className="h-5 w-5 text-primary" /> পেশাগত তথ্য</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>বর্তমান পেশা</Label>
+                        <Input value={profile.current_profession} onChange={(e) => setProfile({ ...profile, current_profession: e.target.value })} placeholder="যেমন: সফটওয়্যার ইঞ্জিনিয়ার" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>উচ্চশিক্ষা</Label>
+                        <Input value={profile.higher_study} onChange={(e) => setProfile({ ...profile, higher_study: e.target.value })} placeholder="যেমন: MSc in CSE, BUET" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> অবস্থান</Label>
+                      <Input value={profile.location} onChange={(e) => setProfile({ ...profile, location: e.target.value })} placeholder="যেমন: ঢাকা, বাংলাদেশ" />
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1"><Linkedin className="h-3.5 w-3.5" /> LinkedIn</Label>
+                        <Input value={profile.linkedin_link} onChange={(e) => setProfile({ ...profile, linkedin_link: e.target.value })} placeholder="https://linkedin.com/in/..." />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1"><Facebook className="h-3.5 w-3.5" /> Facebook</Label>
+                        <Input value={profile.facebook_link} onChange={(e) => setProfile({ ...profile, facebook_link: e.target.value })} placeholder="https://facebook.com/..." />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Testimonial */}
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg"><MessageSquareQuote className="h-5 w-5 text-primary" /> আপনার মতামত</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {hasSubmittedTestimonial ? (
+                      <div className="text-center py-4">
+                        <CheckCircle className="h-8 w-8 text-primary mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">আপনার মতামত জমা দেওয়া হয়েছে। অ্যাডমিন অনুমোদনের পর হোম পেজে প্রদর্শিত হবে।</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-sm text-muted-foreground">নবারুণ সম্পর্কে আপনার অভিজ্ঞতা শেয়ার করুন। অনুমোদনের পর হোম পেজে দেখানো হবে।</p>
+                        <Textarea
+                          value={testimonialMsg}
+                          onChange={(e) => setTestimonialMsg(e.target.value)}
+                          placeholder="নবারুণ আমার জীবনে যে প্রভাব ফেলেছে..."
+                          rows={3}
+                          maxLength={500}
+                        />
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">{testimonialMsg.length}/৫০০</span>
+                          <Button onClick={handleSubmitTestimonial} disabled={submittingTestimonial} size="sm">
+                            <Send className="mr-1 h-4 w-4" /> {submittingTestimonial ? "জমা হচ্ছে..." : "মতামত জমা দিন"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+                <Button onClick={handleSave} size="lg" className="w-full" disabled={saving}>
+                  <Save className="mr-2 h-4 w-4" /> {saving ? "সংরক্ষণ হচ্ছে..." : "প্রোফাইল সংরক্ষণ করুন"}
+                </Button>
+              </motion.div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="memories" className="mt-0">
+            {user && (
+              <MyMemories
+                userId={user.id}
+                authorName={profile.full_name || user.user_metadata?.full_name || "অজ্ঞাত"}
+                defaultBatch={profile.batch_year}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
   );
 }

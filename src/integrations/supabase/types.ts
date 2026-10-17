@@ -202,6 +202,57 @@ export type Database = {
         }
         Relationships: []
       }
+      memories: {
+        Row: {
+          approved_at: string | null
+          author_name: string
+          batch_year: number | null
+          body: string
+          category: string
+          created_at: string
+          id: string
+          is_featured: boolean
+          media: Json
+          rejection_reason: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          author_name: string
+          batch_year?: number | null
+          body: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_featured?: boolean
+          media?: Json
+          rejection_reason?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          author_name?: string
+          batch_year?: number | null
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_featured?: boolean
+          media?: Json
+          rejection_reason?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notices: {
         Row: {
           content: string
@@ -348,6 +399,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_user: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
       get_donation_totals: {
         Args: Record<PropertyKey, never>
         Returns: {

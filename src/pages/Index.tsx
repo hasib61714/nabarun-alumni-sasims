@@ -9,6 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import nabarunLogo from "@/assets/nabarun-logo.png";
 import TestimonialsSection from "@/components/home/TestimonialsSection";
+import MemoriesSection from "@/components/home/MemoriesSection";
 
 const features = [
   { icon: Users, title: "প্রাক্তন ছাত্র নেটওয়ার্ক", desc: "সকল ব্যাচের গ্র্যাজুয়েটদের সাথে সংযুক্ত থাকুন।" },
@@ -294,6 +295,9 @@ export default function Index() {
           </div>
         </section>
       )}
+
+      {/* Memories */}
+      <MemoriesSection />
 
       {/* Testimonials */}
       <TestimonialsSection />
