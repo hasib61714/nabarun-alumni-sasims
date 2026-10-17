@@ -248,24 +248,22 @@
 
 `/register` পেজে গিয়ে আপনার ইমেইল/পাসওয়ার্ড দিয়ে একটি account তৈরি করুন।
 
-### ধাপ ৩ — User ID বের করুন
+### ধাপ ৩ — সুপার অ্যাডমিন রোল দিন
 
-Supabase → Authentication → Users → আপনার ইমেইলের পাশের UUID কপি করুন।
-
-### ধাপ ৪ — সুপার অ্যাডমিন রোল দিন
-
-Supabase SQL Editor এ চালান:
+Supabase SQL Editor এ চালান (ইমেইলের জায়গায় ধাপ ২-এ ব্যবহৃত ইমেইল দিন):
 
 ```sql
 INSERT INTO public.user_roles (user_id, role)
-VALUES ('আপনার-UUID-এখানে', 'super_admin');
+SELECT id, 'super_admin' FROM auth.users WHERE email = 'আপনার-ইমেইল@example.com';
 ```
 
-### ধাপ ৫ — লগইন করুন
+"INSERT 0 1" দেখালে সফল হয়েছে। "INSERT 0 0" দেখালে ইমেইল ভুল বা অ্যাকাউন্ট এখনো তৈরি/কনফার্ম হয়নি।
+
+### ধাপ ৪ — লগইন করুন
 
 `/login` → **"অ্যাডমিন লগইন"** ট্যাব → ইমেইল/পাসওয়ার্ড → Super Admin Dashboard।
 
-### ধাপ ৬ — অন্যদের অ্যাডমিন বানান
+### ধাপ ৫ — অন্যদের অ্যাডমিন বানান
 
 Super Admin Dashboard থেকে যে ছাত্রকে অ্যাডমিন করতে চান তাকে **"অ্যাডমিন করুন"** বাটনে ক্লিক করুন।
 
