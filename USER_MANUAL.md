@@ -232,7 +232,17 @@
 
 ### ধাপ ১ — Migration চালান
 
-Supabase Dashboard → SQL Editor এ [supabase/migrations/20260305000000_add_super_admin_role.sql](supabase/migrations/20260305000000_add_super_admin_role.sql) ফাইলের সম্পূর্ণ SQL paste করে Run করুন।
+[supabase/migrations](supabase/migrations) ফোল্ডারের **সব** ফাইল তারিখ অনুযায়ী (পুরোনো থেকে নতুন) ক্রমে চালাতে হবে।
+
+- **Supabase CLI দিয়ে (সুপারিশকৃত):** `supabase link --project-ref <আপনার-project-id>` তারপর `supabase db push`
+- **SQL Editor দিয়ে:** প্রতিটি ফাইল আলাদা আলাদাভাবে, ক্রমানুসারে paste করে Run করুন। শেষের তিনটি ফাইল অবশ্যই এই ক্রমে চালাবেন:
+  1. `20260305000000_add_super_admin_role.sql`
+  2. `20260305000001_super_admin_policies.sql`
+  3. `20260306000000_security_hardening.sql`
+
+> ⚠️ প্রথম ফাইলটি আলাদাভাবে চালাতে হবে — একই সাথে মিলিয়ে চালালে `unsafe use of new value "super_admin"` error আসবে। আগে একসাথে চালিয়ে থাকলেও ফাইলগুলো আবার চালানো নিরাপদ।
+
+**Migration-এর পর (ঐচ্ছিক কিন্তু সুপারিশকৃত):** ডেভেলপমেন্ট ডাটাবেসে `psql "$DATABASE_URL" -f supabase/tests/security_policies.sql` চালিয়ে নিরাপত্তা পরীক্ষা করুন। শেষে `ALL SECURITY CHECKS PASSED` দেখালে ঠিক আছে। (প্রোডাকশনে চালাবেন না।)
 
 ### ধাপ ২ — সুপার অ্যাডমিন রেজিস্টার করুন
 

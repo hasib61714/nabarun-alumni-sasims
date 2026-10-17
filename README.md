@@ -121,7 +121,8 @@ nabarun-alumni-sasims/
 │       └── student/          # Student dashboard
 ├── supabase/
 │   ├── config.toml           # Supabase CLI config
-│   └── migrations/           # Database migration files
+│   ├── migrations/           # Database migration files (apply in order)
+│   └── tests/                # SQL security regression tests (RLS policies)
 ├── .env.example              # Environment variable template
 ├── vercel.json               # Vercel SPA routing config
 └── vite.config.ts            # Vite build configuration
