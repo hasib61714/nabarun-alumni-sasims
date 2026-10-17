@@ -73,11 +73,11 @@ export default function Contact() {
                 <h2 className="font-display text-xl font-bold mb-5">বার্তা পাঠান</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <Input placeholder="আপনার নাম" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                    <Input placeholder="আপনার ইমেইল" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+                    <Input placeholder="আপনার নাম" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required maxLength={100} />
+                    <Input placeholder="আপনার ইমেইল" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required maxLength={255} />
                   </div>
-                  <Input placeholder="বিষয়" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required />
-                  <Textarea placeholder="আপনার বার্তা..." rows={5} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required />
+                  <Input placeholder="বিষয়" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required maxLength={200} />
+                  <Textarea placeholder="আপনার বার্তা..." rows={5} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required maxLength={5000} />
                   <Button type="submit" disabled={loading} className="w-full">
                     <Send className="mr-2 h-4 w-4" />
                     {loading ? "পাঠানো হচ্ছে..." : "বার্তা পাঠান"}

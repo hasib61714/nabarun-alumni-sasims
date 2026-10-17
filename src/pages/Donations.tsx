@@ -47,15 +47,12 @@ export default function Donations() {
       .order("created_at", { ascending: false });
     setCampaigns((camps as Campaign[]) || []);
 
-    // Get approved donation totals per campaign
-    const { data: donations } = await supabase
-      .from("donations")
-      .select("campaign_id, amount")
-      .eq("status", "approved");
+    // Approved donation totals per campaign (aggregates only; donor details stay private)
+    const { data: donations } = await supabase.rpc("get_donation_totals");
     const totals: Record<string, number> = {};
-    (donations || []).forEach((d: { campaign_id: string | null; amount: number }) => {
+    (donations || []).forEach((d) => {
       const key = d.campaign_id || "general";
-      totals[key] = (totals[key] || 0) + Number(d.amount);
+      totals[key] = (totals[key] || 0) + Number(d.total);
     });
     setDonationTotals(totals);
     setLoading(false);
