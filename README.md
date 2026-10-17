@@ -55,6 +55,8 @@ SASIMS is a comprehensive **alumni management system** built for the Nabarun Edu
 | 🖼️ **Gallery** | Photo gallery with admin controls |
 | 💰 **Donations** | Donation campaigns and transaction tracking |
 | 💬 **Testimonials** | Alumni success stories |
+| 📖 **Memories** | Students share stories, photos and videos; admins approve before they go public |
+| 🧰 **Admin Panel** | Responsive panel to create, edit, delete and approve everything, with CSV exports and a one-click JSON backup |
 | 📩 **Contact** | Public contact form with admin inbox |
 | 🛡️ **Role-Based Access** | Separate dashboards for Admin and Student |
 
@@ -111,6 +113,9 @@ nabarun-alumni-sasims/
 │   ├── assets/               # Images and media files
 │   ├── components/
 │   │   ├── ui/               # shadcn/ui base components
+│   │   ├── admin/            # Admin shell and sections
+│   │   ├── common/           # Shared dialogs, tables, forms
+│   │   ├── memories/         # Memory cards, media viewer, uploader, form
 │   │   └── home/             # Home page sections
 │   ├── hooks/                # Custom React hooks
 │   ├── integrations/
@@ -122,6 +127,7 @@ nabarun-alumni-sasims/
 ├── supabase/
 │   ├── config.toml           # Supabase CLI config
 │   ├── migrations/           # Database migration files (apply in order)
+│   ├── setup/                # The migrations combined, to paste into the SQL Editor
 │   └── tests/                # SQL security regression tests (RLS policies)
 ├── .env.example              # Environment variable template
 ├── vercel.json               # Vercel SPA routing config
