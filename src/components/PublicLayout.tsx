@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import nabarunLogo from "@/assets/nabarun-logo.png";
 import { supabase } from "@/integrations/supabase/client";
+import { InstitutionLogos } from "@/components/InstitutionsSection";
 
 const navLinks = [
   { label: "হোম", path: "/" },
@@ -152,6 +153,7 @@ export default function PublicLayout() {
               </a>
             </div>
           </div>
+          <InstitutionLogos />
           <div className="mt-8 pt-6 border-t text-center text-sm text-muted-foreground">
             <p>© {new Date().getFullYear()} নবারুণ এডুকেশন ফ্যামিলি। সর্বস্বত্ব সংরক্ষিত।</p>
             <p className="mt-1 text-xs">Developed with ❤️ | <Link to="/about" className="hover:text-primary transition-colors">ডেভেলপার সম্পর্কে</Link></p>

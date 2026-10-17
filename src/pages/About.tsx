@@ -1,9 +1,12 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Target, Eye, Heart, Code, Linkedin, Facebook, Github, Globe } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import nabarunLogo from "@/assets/nabarun-logo.png";
 import developerPhoto from "@/assets/developer-photo.png";
+import { InstitutionCards } from "@/components/InstitutionsSection";
 
 const values = [
   { icon: Target, title: "আমাদের মিশন", desc: "আমাদের প্রতিষ্ঠানের প্রতিটি ছাত্রের যাত্রাপথকে ডিজিটালভাবে সংরক্ষণ ও উদযাপন করা।" },
@@ -23,6 +26,10 @@ const developer = {
 };
 
 export default function About() {
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+  }, [hash]);
   const devInitials = developer.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   const socialLinks = [
     { url: developer.linkedin, icon: Linkedin, label: "LinkedIn" },
@@ -68,6 +75,14 @@ export default function About() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="institutions" className="py-20 scroll-mt-20">
+        <div className="container">
+          <h2 className="font-display text-3xl font-bold text-center mb-3">আমাদের প্রতিষ্ঠান</h2>
+          <p className="text-center text-muted-foreground mb-10">নবারুণ এডুকেশন ফ্যামিলির অধীনে তিনটি প্রতিষ্ঠান</p>
+          <InstitutionCards />
         </div>
       </section>
 
