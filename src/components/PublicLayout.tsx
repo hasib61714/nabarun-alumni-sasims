@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ const navLinks = [
   { label: "প্রাক্তন ছাত্র", path: "/alumni" },
   { label: "ডিরেক্টরি", path: "/directory" },
   { label: "গ্যালারি", path: "/gallery" },
+  { label: "স্মৃতি", path: "/memories" },
   { label: "ইভেন্ট", path: "/events" },
   { label: "অনুদান", path: "/donations" },
   { label: "নোটিশ", path: "/notices" },
@@ -22,6 +24,9 @@ export default function PublicLayout() {
   const { pathname } = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
+  const isActive = (path: string) => pathname === path || (path !== "/" && pathname.startsWith(`${path}/`));
+
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setLoggedIn(!!session));
@@ -38,13 +43,13 @@ export default function PublicLayout() {
             <span className="font-display text-lg font-bold text-primary hidden sm:block">Nabarun Alumni</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden xl:flex items-center gap-0.5">
             {navLinks.map((l) => (
               <Link
                 key={l.path}
                 to={l.path}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  pathname === l.path
+                className={`px-2.5 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isActive(l.path)
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
@@ -54,7 +59,7 @@ export default function PublicLayout() {
             ))}
           </nav>
 
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden xl:flex items-center gap-2">
             {loggedIn ? (
               <>
                 <Button asChild variant="ghost">
@@ -76,20 +81,25 @@ export default function PublicLayout() {
             )}
           </div>
 
-          <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
+          <button className="xl:hidden rounded-md p-2 hover:bg-muted" onClick={() => setMobileOpen(!mobileOpen)} aria-label="মেনু" aria-expanded={mobileOpen}>
             {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
-        {mobileOpen && (
-          <div className="md:hidden border-t bg-card p-4 space-y-2">
+        <AnimatePresence initial={false}>
+          {mobileOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
+            className="xl:hidden overflow-hidden border-t bg-card"
+          >
+          <div className="max-h-[calc(100dvh-4rem)] space-y-2 overflow-y-auto p-4">
             {navLinks.map((l) => (
               <Link
                 key={l.path}
                 to={l.path}
                 onClick={() => setMobileOpen(false)}
                 className={`block px-3 py-2 rounded-md text-sm font-medium ${
-                  pathname === l.path ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  isActive(l.path) ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
                 {l.label}
@@ -115,7 +125,9 @@ export default function PublicLayout() {
               </div>
             )}
           </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </header>
 
       <main className="flex-1">
