@@ -432,6 +432,48 @@ BEGIN
 END $$;
 
 -- ===========================================================================
+-- 8b. admin_list_users: only a super admin gets any rows (e-mail addresses are private)
+-- ===========================================================================
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a2', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a2","role":"authenticated"}', true); END $$;
+DO $$
+DECLARE n int;
+BEGIN
+  SELECT count(*) INTO n FROM public.admin_list_users();
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL: a student can list % accounts', n; END IF;
+END $$;
+
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true); END $$;
+DO $$
+DECLARE n int;
+BEGIN
+  SELECT count(*) INTO n FROM public.admin_list_users();
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL: a plain admin can list % accounts with e-mail addresses', n; END IF;
+END $$;
+
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a3', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a3","role":"authenticated"}', true); END $$;
+DO $$
+DECLARE n int; roles text[];
+BEGIN
+  SELECT count(*) INTO n FROM public.admin_list_users() WHERE email LIKE '%@test.local';
+  IF n < 4 THEN RAISE EXCEPTION 'FAIL: super admin sees only % of the 4 test accounts', n; END IF;
+  SELECT l.roles INTO roles FROM public.admin_list_users() l WHERE l.email = 'super@test.local';
+  IF NOT ('super_admin' = ANY(roles) AND 'student' = ANY(roles)) THEN RAISE EXCEPTION 'FAIL: roles missing from the account list (%)', roles; END IF;
+END $$;
+
+RESET ROLE;
+SET LOCAL ROLE anon;
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '', true), set_config('request.jwt.claims', '{"role":"anon"}', true); END $$;
+DO $$
+BEGIN
+  BEGIN
+    PERFORM * FROM public.admin_list_users();
+    RAISE EXCEPTION 'FAIL: anonymous visitors can call admin_list_users';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END $$;
+RESET ROLE;
+SET LOCAL ROLE authenticated;
+
+-- ===========================================================================
 -- 9. admin_delete_user
 -- ===========================================================================
 DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a2', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a2","role":"authenticated"}', true); END $$;
