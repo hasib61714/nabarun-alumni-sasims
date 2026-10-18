@@ -11,6 +11,7 @@ import MemoriesSection from "@/components/admin/sections/MemoriesSection";
 import MessagesSection from "@/components/admin/sections/MessagesSection";
 import NoticesSection from "@/components/admin/sections/NoticesSection";
 import OverviewSection from "@/components/admin/sections/OverviewSection";
+import SiteSettingsSection from "@/components/admin/sections/SiteSettingsSection";
 import StudentsSection from "@/components/admin/sections/StudentsSection";
 import TestimonialsSection from "@/components/admin/sections/TestimonialsSection";
 import { ListSkeleton } from "@/components/admin/AdminCommon";
@@ -55,6 +56,7 @@ export default function AdminDashboard() {
       {section === "donations" && <DonationsSection adminId={adminId} />}
       {section === "testimonials" && <TestimonialsSection />}
       {section === "messages" && <MessagesSection />}
+      {section === "site" && <SiteSettingsSection />}
       {section === "admins" && <AdminsSection currentUserId={adminId} />}
       {section === "analytics" && <Suspense fallback={<ListSkeleton rows={3} />}><AnalyticsSection /></Suspense>}
     </AdminShell>

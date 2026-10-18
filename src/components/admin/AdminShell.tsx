@@ -32,7 +32,7 @@ function NavContent({ section, onSectionChange, counts, isSuperAdmin, adminName,
         </Link>
         <div className="mt-3 flex items-center gap-3 rounded-xl bg-sidebar-accent/60 p-2.5">
           <Avatar className="h-9 w-9 border border-white/30"><AvatarFallback className="bg-white/20 text-xs font-semibold text-white">{initialsOf(adminName, "A")}</AvatarFallback></Avatar>
-          <div className="min-w-0"><p className="truncate text-sm font-semibold">{adminName}</p><p className="truncate text-xs text-sidebar-foreground/75">{isSuperAdmin ? "সুপার অ্যাডমিন" : "অ্যাডমিন"}</p></div>
+          <div className="min-w-0"><p className="truncate text-sm font-semibold">{adminName}</p><p className="truncate text-xs text-sidebar-foreground/95">{isSuperAdmin ? "সুপার অ্যাডমিন" : "অ্যাডমিন"}</p></div>
         </div>
       </div>
 

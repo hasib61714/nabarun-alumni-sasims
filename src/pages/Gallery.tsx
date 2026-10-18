@@ -1,3 +1,5 @@
+import { usePageMeta } from "@/hooks/usePageMeta";
+import PageHero from "@/components/site/PageHero";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +21,7 @@ interface GalleryPhoto {
 }
 
 export default function Gallery() {
+  usePageMeta("গ্যালারি", "নবারুণ এডুকেশন ফ্যামিলির স্মৃতি ও মুহূর্তের ছবি।");
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -54,11 +57,9 @@ export default function Gallery() {
   const nextPhoto = () => setLightboxIdx((i) => (i !== null && i < filtered.length - 1 ? i + 1 : 0));
 
   return (
+    <>
+    <PageHero badge="গ্যালারি" title="ফটো গ্যালারি" subtitle="নবারুণ এডুকেশন ফ্যামিলির স্মৃতি ও মুহূর্তগুলো" />
     <div className="container py-12">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
-        <h1 className="font-display text-4xl font-bold mb-3">📸 ফটো গ্যালারি</h1>
-        <p className="text-muted-foreground max-w-xl mx-auto">নবারুণ এডুকেশন ফ্যামিলির স্মৃতি ও মুহূর্তগুলো</p>
-      </motion.div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-8 max-w-xl mx-auto">
@@ -152,5 +153,6 @@ export default function Gallery() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }

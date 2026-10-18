@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toProfileRow, type ProfileFormValues, type StudentProfile } from "@/lib/profile";
+import type { VerificationValues } from "@/lib/auth";
 
 /** The signed-in user; sends visitors who are not signed in to the login page. */
 export function useRequireUser() {
@@ -87,5 +88,45 @@ export function useNotices(limit = 30) {
       if (error) throw error;
       return data ?? [];
     },
+  });
+}
+
+export interface Verification {
+  user_id: string;
+  phone: string | null;
+  institution: string | null;
+  relation: string | null;
+  note: string | null;
+  status: "pending" | "approved" | "rejected";
+  review_note: string | null;
+  reviewed_at: string | null;
+}
+
+const verificationKey = (userId?: string) => ["student", "verification", userId];
+
+/** The registration details the signed-in person gave, and the admin's decision on them. */
+export function useMyVerification(userId: string | undefined) {
+  return useQuery({
+    queryKey: verificationKey(userId),
+    enabled: !!userId,
+    queryFn: async (): Promise<Verification | null> => {
+      const { data, error } = await supabase
+        .from("student_verifications").select("user_id, phone, institution, relation, note, status, review_note, reviewed_at").eq("user_id", userId!).maybeSingle();
+      if (error) return null; // the table is created by the latest migration; older databases simply have none
+      return data as Verification | null;
+    },
+  });
+}
+
+/** Correct the registration details (this also puts a rejected request back in the queue). */
+export function useResubmitVerification(userId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (values: VerificationValues) => {
+      const { error } = await supabase.from("student_verifications")
+        .upsert({ user_id: userId!, ...values, note: values.note || null, status: "pending" }, { onConflict: "user_id" });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: verificationKey(userId) }),
   });
 }

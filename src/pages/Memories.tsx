@@ -1,3 +1,4 @@
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -22,6 +23,7 @@ function useDebounced<T>(value: T, delay = 350) {
 }
 
 export default function Memories() {
+  usePageMeta("স্মৃতির পাতা", "নবারুণের দিনগুলোর গল্প, ছবি আর ভিডিও।");
   const { user } = useAuthUser();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
@@ -43,11 +45,11 @@ export default function Memories() {
         <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
         <div className="container relative">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-2xl text-center">
-            <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-1.5 text-sm text-primary-foreground/90">
+            <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm text-white/90">
               <BookHeart className="h-4 w-4" /> প্রাক্তনদের কলমে
             </span>
-            <h1 className="font-display text-3xl font-bold text-primary-foreground sm:text-5xl">স্মৃতির পাতা</h1>
-            <p className="mx-auto mt-4 max-w-xl text-primary-foreground/80 sm:text-lg">
+            <h1 className="font-display text-3xl font-bold text-white sm:text-5xl">স্মৃতির পাতা</h1>
+            <p className="mx-auto mt-4 max-w-xl text-white/80 sm:text-lg">
               নবারুণের দিনগুলোর গল্প, ছবি আর ভিডিও — আমাদের প্রাক্তন ও বর্তমান ছাত্রদের নিজের কথায়।
             </p>
             <Button asChild size="lg" variant="secondary" className="mt-7 gap-2 font-semibold shadow-elevated">

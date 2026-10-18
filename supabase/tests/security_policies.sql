@@ -75,8 +75,51 @@ BEGIN
 END $$;
 
 -- ===========================================================================
--- 3. A student cannot approve their own profile, but can edit the rest
+-- 3. A student cannot approve their own profile, but once approved can edit the rest
 -- ===========================================================================
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a2', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a2","role":"authenticated"}', true); END $$;
+
+-- 3a. Until an admin approves the registration, a student can only wait
+DO $$
+DECLARE n int;
+BEGIN
+  UPDATE public.student_profiles SET current_profession = 'Engineer' WHERE user_id = auth.uid();
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL: an unapproved student edited their profile'; END IF;
+
+  UPDATE public.student_profiles SET is_approved = true WHERE user_id = auth.uid();
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL: student self-approved via UPDATE'; END IF;
+
+  BEGIN
+    INSERT INTO public.student_profiles (user_id, is_approved)
+    VALUES (auth.uid(), true)
+    ON CONFLICT (user_id) DO UPDATE SET is_approved = true;
+    RAISE EXCEPTION 'FAIL: student self-approved via upsert';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  BEGIN
+    INSERT INTO public.memories (user_id, author_name, title, body) VALUES (auth.uid(), 'Student', 'Early', 'Not yet approved to share this');
+    RAISE EXCEPTION 'FAIL: an unapproved student submitted a memory';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  BEGIN
+    INSERT INTO public.testimonials (user_id, name, message) VALUES (auth.uid(), 'Student', 'A perfectly fine testimonial');
+    RAISE EXCEPTION 'FAIL: an unapproved student submitted a testimonial';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END $$;
+
+-- (admin approves)
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true); END $$;
+DO $$
+DECLARE n int;
+BEGIN
+  UPDATE public.student_profiles SET is_approved = true
+  WHERE user_id = '00000000-0000-0000-0000-0000000000a2';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'FAIL: admin could not approve a profile'; END IF;
+END $$;
+
 DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a2', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a2","role":"authenticated"}', true); END $$;
 
 DO $$
@@ -87,8 +130,8 @@ BEGIN
   IF n <> 1 THEN RAISE EXCEPTION 'FAIL: student cannot edit own profile'; END IF;
 
   BEGIN
-    UPDATE public.student_profiles SET is_approved = true WHERE user_id = auth.uid();
-    RAISE EXCEPTION 'FAIL: student self-approved via UPDATE';
+    UPDATE public.student_profiles SET is_approved = false WHERE user_id = auth.uid();
+    RAISE EXCEPTION 'FAIL: student changed their own approval via UPDATE';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
   BEGIN
@@ -107,17 +150,6 @@ BEGIN
   UPDATE public.student_profiles SET roll = 'x' WHERE user_id = '00000000-0000-0000-0000-0000000000a4';
   GET DIAGNOSTICS n = ROW_COUNT;
   IF n <> 0 THEN RAISE EXCEPTION 'FAIL: student edited another profile'; END IF;
-END $$;
-
--- An admin can approve
-DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true); END $$;
-DO $$
-DECLARE n int;
-BEGIN
-  UPDATE public.student_profiles SET is_approved = true
-  WHERE user_id = '00000000-0000-0000-0000-0000000000a2';
-  GET DIAGNOSTICS n = ROW_COUNT;
-  IF n <> 1 THEN RAISE EXCEPTION 'FAIL: admin could not approve a profile'; END IF;
 END $$;
 
 -- A student whose profile was deleted cannot re-create it as approved
@@ -553,6 +585,156 @@ BEGIN
       AND qual ILIKE '%memories%' AND (roles && ARRAY['public', 'anon']::name[])
   ) THEN RAISE EXCEPTION 'FAIL: the memories bucket can be listed by anonymous users'; END IF;
 END $$;
+
+-- ===========================================================================
+-- 9. Registration review, site settings, e-mail auto-confirmation
+-- ===========================================================================
+RESET ROLE;
+-- a sign-up with registration details: nothing is public, a review is opened
+INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES
+  ('00000000-0000-0000-0000-0000000000b1', 'new@test.local',
+   '{"full_name":"New Person","batch_year":"2015","roll":"17","phone":"01700000000","institution":"NPS","note":"Class 10 friend of Rahim"}');
+DO $$
+DECLARE p public.student_profiles; v public.student_verifications;
+BEGIN
+  SELECT * INTO p FROM public.student_profiles WHERE user_id = '00000000-0000-0000-0000-0000000000b1';
+  IF p.full_name <> 'New Person' OR p.batch_year <> 2015 OR p.roll <> '17' OR p.is_approved IS TRUE THEN
+    RAISE EXCEPTION 'FAIL: registration details were not stored on an unapproved profile';
+  END IF;
+  SELECT * INTO v FROM public.student_verifications WHERE user_id = p.user_id;
+  IF v.status <> 'pending' OR v.phone <> '01700000000' OR v.institution <> 'NPS' THEN
+    RAISE EXCEPTION 'FAIL: verification request was not opened';
+  END IF;
+  IF (SELECT email_confirmed_at FROM auth.users WHERE id = p.user_id) IS NULL THEN
+    RAISE EXCEPTION 'FAIL: new accounts are not auto-confirmed';
+  END IF;
+END $$;
+
+-- the person sees their own request, not other people's
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}', true); END $$;
+DO $$
+DECLARE n int;
+BEGIN
+  SELECT count(*) INTO n FROM public.student_verifications;
+  IF n <> 1 THEN RAISE EXCEPTION 'FAIL: a student can read % verification rows (expected only their own)', n; END IF;
+
+  BEGIN
+    UPDATE public.student_verifications SET status = 'approved' WHERE user_id = auth.uid();
+    RAISE EXCEPTION 'FAIL: a student approved their own verification';
+  EXCEPTION WHEN insufficient_privilege OR check_violation THEN NULL; END;
+
+  BEGIN
+    UPDATE public.student_verifications SET review_note = 'looks fine' WHERE user_id = auth.uid();
+    RAISE EXCEPTION 'FAIL: a student wrote their own review note';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  BEGIN
+    PERFORM public.review_student(auth.uid(), 'approve', NULL);
+    RAISE EXCEPTION 'FAIL: a student called review_student';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  -- details may be corrected while the review is open
+  UPDATE public.student_verifications SET note = 'Updated note' WHERE user_id = auth.uid();
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'FAIL: a student cannot correct their registration details'; END IF;
+END $$;
+
+-- anonymous visitors see nothing private
+RESET ROLE;
+SET LOCAL ROLE anon;
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '', true), set_config('request.jwt.claims', '{"role":"anon"}', true); END $$;
+DO $$
+BEGIN
+  IF (SELECT count(*) FROM public.student_verifications) <> 0 THEN
+    RAISE EXCEPTION 'FAIL: anon can read verifications';
+  END IF;
+  BEGIN
+    PERFORM public.review_student('00000000-0000-0000-0000-0000000000b1', 'approve', NULL);
+    RAISE EXCEPTION 'FAIL: anon called review_student';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END $$;
+
+-- an admin (here the super admin; the ordinary admin was deleted above) rejects (the student sees why), then approves
+RESET ROLE;
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a3', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a3","role":"authenticated"}', true); END $$;
+DO $$
+DECLARE v public.student_verifications;
+BEGIN
+  IF (SELECT count(*) FROM public.student_verifications) < 2 THEN RAISE EXCEPTION 'FAIL: an admin cannot read verifications'; END IF;
+
+  PERFORM public.review_student('00000000-0000-0000-0000-0000000000b1', 'reject', 'Could not match the batch list');
+  SELECT * INTO v FROM public.student_verifications WHERE user_id = '00000000-0000-0000-0000-0000000000b1';
+  IF v.status <> 'rejected' OR v.review_note <> 'Could not match the batch list' OR v.reviewed_by <> auth.uid() THEN
+    RAISE EXCEPTION 'FAIL: rejection was not recorded';
+  END IF;
+  IF (SELECT is_approved FROM public.student_profiles WHERE user_id = v.user_id) THEN
+    RAISE EXCEPTION 'FAIL: a rejected profile is approved';
+  END IF;
+
+  PERFORM public.review_student('00000000-0000-0000-0000-0000000000b1', 'approve', NULL);
+  SELECT * INTO v FROM public.student_verifications WHERE user_id = '00000000-0000-0000-0000-0000000000b1';
+  IF v.status <> 'approved' OR NOT (SELECT is_approved FROM public.student_profiles WHERE user_id = v.user_id) THEN
+    RAISE EXCEPTION 'FAIL: approval was not applied';
+  END IF;
+
+  -- approving with the plain table update (bulk action) keeps the status in step too
+  UPDATE public.student_profiles SET is_approved = false WHERE user_id = v.user_id;
+  IF (SELECT status FROM public.student_verifications WHERE user_id = v.user_id) <> 'pending' THEN
+    RAISE EXCEPTION 'FAIL: un-approving did not reopen the verification';
+  END IF;
+  UPDATE public.student_profiles SET is_approved = true WHERE user_id = v.user_id;
+  IF (SELECT status FROM public.student_verifications WHERE user_id = v.user_id) <> 'approved' THEN
+    RAISE EXCEPTION 'FAIL: a plain approval did not update the verification';
+  END IF;
+
+  BEGIN
+    PERFORM public.review_student('00000000-0000-0000-0000-0000000000b1', 'maybe', NULL);
+    RAISE EXCEPTION 'FAIL: review_student accepted an unknown decision';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+END $$;
+
+-- site settings: public read, admin-only write
+DO $$
+BEGIN
+  INSERT INTO public.site_settings (key, value) VALUES ('general', '{"siteName":"Test"}')
+  ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+  IF (SELECT updated_by FROM public.site_settings WHERE key = 'general') IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'FAIL: site_settings did not record who changed it';
+  END IF;
+END $$;
+
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true), set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}', true); END $$;
+DO $$
+DECLARE n int;
+BEGIN
+  BEGIN
+    INSERT INTO public.site_settings (key, value) VALUES ('hacked', '{}');
+    RAISE EXCEPTION 'FAIL: a student wrote a site setting';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  UPDATE public.site_settings SET value = '{"siteName":"Hacked"}' WHERE key = 'general';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL: a student changed a site setting'; END IF;
+  DELETE FROM public.site_settings WHERE key = 'general';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL: a student deleted a site setting'; END IF;
+END $$;
+
+RESET ROLE;
+SET LOCAL ROLE anon;
+DO $$ BEGIN PERFORM set_config('request.jwt.claim.sub', '', true), set_config('request.jwt.claims', '{"role":"anon"}', true); END $$;
+DO $$
+BEGIN
+  IF (SELECT value->>'siteName' FROM public.site_settings WHERE key = 'general') <> 'Test' THEN
+    RAISE EXCEPTION 'FAIL: anon cannot read site settings';
+  END IF;
+  BEGIN
+    INSERT INTO public.site_settings (key, value) VALUES ('x', '{}');
+    RAISE EXCEPTION 'FAIL: anon wrote a site setting';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END $$;
+RESET ROLE;
 
 ROLLBACK;
 SELECT 'ALL SECURITY CHECKS PASSED' AS result;

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, Clock, Home, LogOut } from "lucide-react";
+import { CheckCircle2, Clock, Home, Lock, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { initialsOf } from "@/lib/format";
@@ -24,11 +24,14 @@ interface Props {
   /** dot on "Profile" while the profile is incomplete, and a count on "Memories" for memories that need attention */
   incomplete: boolean;
   needsAttention: number;
+  /** sections that stay closed until an admin approves the account */
+  locked?: StudentSectionId[];
   onLogout: () => void;
   children: ReactNode;
 }
 
-function Indicator({ id, incomplete, needsAttention }: { id: StudentSectionId; incomplete: boolean; needsAttention: number }) {
+function Indicator({ id, incomplete, needsAttention, locked }: { id: StudentSectionId; incomplete: boolean; needsAttention: number; locked?: boolean }) {
+  if (locked) return <Lock className="h-3.5 w-3.5 opacity-70" aria-label="অনুমোদনের পর চালু হবে" />;
   if (id === "profile" && incomplete) return <span className="h-2 w-2 rounded-full bg-accent" aria-label="অসম্পূর্ণ" />;
   if (id === "memories" && needsAttention > 0) {
     return <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-semibold text-accent-foreground">{needsAttention}</span>;
@@ -36,7 +39,7 @@ function Indicator({ id, incomplete, needsAttention }: { id: StudentSectionId; i
   return null;
 }
 
-export function StudentShell({ section, onSectionChange, user, incomplete, needsAttention, onLogout, children }: Props) {
+export function StudentShell({ section, onSectionChange, user, incomplete, needsAttention, locked = [], onLogout, children }: Props) {
   const current = STUDENT_SECTIONS.find((s) => s.id === section) ?? STUDENT_SECTIONS[0];
   const photo = safeHttpsUrl(user.photo);
 
@@ -50,11 +53,11 @@ export function StudentShell({ section, onSectionChange, user, incomplete, needs
         <div className="mx-3 mb-3 flex items-center gap-3 rounded-xl bg-sidebar-accent/60 p-3">
           <Avatar className="h-11 w-11 border-2 border-white/30">
             {photo && <AvatarImage src={photo} alt="" />}
-            <AvatarFallback className="bg-white/20 font-semibold text-white">{initialsOf(user.name)}</AvatarFallback>
+            <AvatarFallback className="bg-black/25 font-semibold text-white">{initialsOf(user.name)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{user.name}</p>
-            <p className="inline-flex items-center gap-1 text-xs text-sidebar-foreground/80">
+            <p className="inline-flex items-center gap-1 text-xs text-sidebar-foreground/95">
               {user.approved ? <><CheckCircle2 className="h-3 w-3" /> অনুমোদিত</> : <><Clock className="h-3 w-3" /> অনুমোদনের অপেক্ষায়</>}
             </p>
           </div>
@@ -72,7 +75,7 @@ export function StudentShell({ section, onSectionChange, user, incomplete, needs
               >
                 <s.icon className="h-[18px] w-[18px] shrink-0" />
                 <span>{s.label}</span>
-                <span className="ml-auto"><Indicator id={s.id} incomplete={incomplete} needsAttention={needsAttention} /></span>
+                <span className="ml-auto"><Indicator id={s.id} incomplete={incomplete} needsAttention={needsAttention} locked={locked.includes(s.id)} /></span>
               </button>
             );
           })}
@@ -118,7 +121,7 @@ export function StudentShell({ section, onSectionChange, user, incomplete, needs
                 >
                   <span className={cn("relative flex h-7 w-12 items-center justify-center rounded-full transition-colors", active && "bg-primary/10")}>
                     <s.icon className="h-5 w-5" />
-                    <span className="absolute -right-0.5 -top-0.5"><Indicator id={s.id} incomplete={incomplete} needsAttention={needsAttention} /></span>
+                    <span className="absolute -right-0.5 -top-0.5"><Indicator id={s.id} incomplete={incomplete} needsAttention={needsAttention} locked={locked.includes(s.id)} /></span>
                   </span>
                   {s.label}
                 </button>

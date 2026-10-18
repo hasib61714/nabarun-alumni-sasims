@@ -1,33 +1,25 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Award, Search, ArrowRight, BookOpen, BarChart3, Shield, Bell, GraduationCap, MapPin, Heart, Calendar, Trophy } from "lucide-react";
+import {
+  Award, ArrowRight, BarChart3, Bell, BookOpen, Calendar, CheckCircle2, GraduationCap, MapPin, Search, Shield, Sparkles,
+  Trophy, UserCheck, UserPlus, Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import nabarunLogo from "@/assets/nabarun-logo.png";
-import npsLogo from "@/assets/institutions/nps.png";
-import blmsLogo from "@/assets/institutions/blms.png";
-import coachingLogo from "@/assets/institutions/coaching.png";
 import TestimonialsSection from "@/components/home/TestimonialsSection";
 import MemoriesSection from "@/components/home/MemoriesSection";
+import SectionHeading from "@/components/site/SectionHeading";
+import CountUp from "@/components/site/CountUp";
+import { useInstitutions, useSiteSettings } from "@/hooks/useSiteSettings";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { initialsOf } from "@/lib/format";
+import { safeHref } from "@/lib/siteSettings";
 
-const features = [
-  { icon: Users, title: "প্রাক্তন ছাত্র নেটওয়ার্ক", desc: "সকল ব্যাচের গ্র্যাজুয়েটদের সাথে সংযুক্ত থাকুন।" },
-  { icon: BookOpen, title: "একাডেমিক রেকর্ড", desc: "SSC, HSC এবং চূড়ান্ত পরীক্ষার ফলাফল ডিজিটালি সংরক্ষণ করুন।" },
-  { icon: Award, title: "সাফল্য ও অর্জন", desc: "পুরস্কার, সম্মাননা এবং পেশাদার মাইলফলক প্রদর্শন করুন।" },
-  { icon: BarChart3, title: "ব্যাচ পরিসংখ্যান", desc: "বছর ও পেশা অনুযায়ী প্রাক্তন ছাত্রদের ভিজ্যুয়াল ইনসাইট।" },
-  { icon: Search, title: "স্মার্ট অনুসন্ধান", desc: "নাম, রোল, ব্যাচ বা পেশা দিয়ে প্রাক্তন ছাত্র খুঁজুন।" },
-  { icon: Shield, title: "নিরাপদ ও গোপনীয়", desc: "রোল-ভিত্তিক অ্যাক্সেস ও অ্যাডমিন অনুমোদন ব্যবস্থা।" },
-];
-
-const institutions = [
-  { name: "নবারুণ পাবলিক স্কুল (NPS)", desc: "পুরুষ শিক্ষার্থীদের জন্য মানসম্মত শিক্ষা প্রতিষ্ঠান।", logo: npsLogo },
-  { name: "বিপ্লব লোপা মেমোরিয়াল গার্লস স্কুল", desc: "নারী শিক্ষায় অগ্রণী ভূমিকা পালনকারী প্রতিষ্ঠান।", logo: blmsLogo },
-  { name: "নবারুণ কোচিং সেন্টার", desc: "পরীক্ষার প্রস্তুতি ও বিশেষ কোচিং সেবা।", logo: coachingLogo },
-];
+const featureIcons = [Users, BookOpen, Award, BarChart3, Search, Shield];
+const stepIcons = [UserPlus, UserCheck, Sparkles];
 
 interface TopAlumni {
   full_name: string | null;
@@ -36,133 +28,143 @@ interface TopAlumni {
   photo: string | null;
   achievement: string | null;
 }
-
-interface Notice {
-  id: string;
-  title: string;
-  created_at: string;
-}
-
-interface UpcomingEvent {
-  id: string;
-  title: string;
-  event_date: string;
-  location: string | null;
-}
+interface Notice { id: string; title: string; created_at: string }
+interface UpcomingEvent { id: string; title: string; event_date: string; location: string | null }
 
 export default function Index() {
+  const { settings } = useSiteSettings();
+  const institutions = useInstitutions();
+  const { home } = settings;
+  usePageMeta();
+
   const [stats, setStats] = useState({ total: 0, batches: 0, professions: 0 });
   const [topAlumni, setTopAlumni] = useState<TopAlumni[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [events, setEvents] = useState<UpcomingEvent[]>([]);
 
   useEffect(() => {
+    let active = true;
     const load = async () => {
-      const { data: profiles } = await supabase
-        .from("student_profiles")
-        .select("batch_year, current_profession, full_name, photo, achievement")
-        .eq("is_approved", true);
-
+      const [profilesRes, noticesRes, eventsRes] = await Promise.all([
+        supabase.from("student_profiles").select("batch_year, current_profession, full_name, photo, achievement").eq("is_approved", true),
+        supabase.from("notices").select("id, title, created_at").eq("is_published", true).order("created_at", { ascending: false }).limit(5),
+        supabase.from("events").select("id, title, event_date, location").eq("is_published", true)
+          .gte("event_date", new Date().toISOString().split("T")[0]).order("event_date", { ascending: true }).limit(3),
+      ]);
+      if (!active) return;
+      const profiles = profilesRes.data;
       if (profiles) {
-        const batchSet = new Set(profiles.map((p) => p.batch_year).filter(Boolean));
-        const profSet = new Set(profiles.map((p) => p.current_profession).filter(Boolean));
-        setStats({ total: profiles.length, batches: batchSet.size, professions: profSet.size });
-
-        const withAchievements = profiles.filter((p) => p.achievement && p.achievement.length > 5);
-        setTopAlumni(withAchievements.slice(0, 6) as TopAlumni[]);
+        const batches = new Set(profiles.map((p) => p.batch_year).filter(Boolean));
+        const professions = new Set(profiles.map((p) => p.current_profession?.trim().toLowerCase()).filter(Boolean));
+        setStats({ total: profiles.length, batches: batches.size, professions: professions.size });
+        setTopAlumni(profiles.filter((p) => p.achievement && p.achievement.length > 5).slice(0, 6) as TopAlumni[]);
       }
-
-      const { data: noticeData } = await supabase
-        .from("notices")
-        .select("id, title, created_at")
-        .eq("is_published", true)
-        .order("created_at", { ascending: false })
-        .limit(5);
-      setNotices((noticeData as Notice[]) || []);
-
-      const { data: eventData } = await supabase
-        .from("events")
-        .select("id, title, event_date, location")
-        .eq("is_published", true)
-        .gte("event_date", new Date().toISOString().split("T")[0])
-        .order("event_date", { ascending: true })
-        .limit(3);
-      setEvents((eventData as UpcomingEvent[]) || []);
+      setNotices((noticesRes.data as Notice[]) || []);
+      setEvents((eventsRes.data as UpcomingEvent[]) || []);
     };
-    load();
+    void load();
+    return () => { active = false; };
   }, []);
 
   const displayStats = [
-    { value: stats.total > 0 ? `${stats.total}+` : "—", label: "প্রাক্তন ছাত্র" },
-    { value: stats.batches > 0 ? `${stats.batches}+` : "—", label: "ব্যাচ" },
-    { value: stats.professions > 0 ? `${stats.professions}+` : "—", label: "পেশা" },
-    { value: "৯৮%", label: "সক্রিয় প্রোফাইল" },
+    { value: stats.total, label: "প্রাক্তন ছাত্র", plus: true },
+    { value: stats.batches, label: "ব্যাচ", plus: true },
+    { value: stats.professions, label: "পেশা", plus: true },
+    { value: institutions.length, label: "প্রতিষ্ঠান", plus: false },
   ];
+
+  const primaryHref = safeHref(home.primaryCtaLink) || "/register";
+  const secondaryHref = safeHref(home.secondaryCtaLink) || "/alumni";
+  const motto = home.heroMotto.trim();
 
   return (
     <div>
       {/* Hero */}
-      <section className="relative bg-hero-gradient overflow-hidden">
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
-        <div className="container relative py-24 md:py-36">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-3xl">
-            <div className="flex items-center gap-3 mb-6">
-              <img src={nabarunLogo} alt="Nabarun" className="h-16 w-auto drop-shadow-lg" />
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-1.5 text-sm text-primary-foreground/90">
-                নবারুণ এডুকেশন ফ্যামিলি
-              </div>
-            </div>
-            <h1 className="font-display text-4xl md:text-6xl font-bold text-primary-foreground leading-tight mb-4">
-              ছাত্রদের সংযোগ, <br />ঐতিহ্যের সংরক্ষণ
+      <section className="relative overflow-hidden bg-hero-gradient">
+        <div className="bg-grid absolute inset-0" aria-hidden />
+        <div className="orb animate-float -left-24 top-10 h-80 w-80 bg-cyan-300/30" aria-hidden />
+        <div className="orb animate-float-slow right-0 top-1/3 h-96 w-96 bg-teal-300/25" aria-hidden />
+        <div className="orb animate-float -bottom-32 left-1/3 h-72 w-72 bg-red-400/15" aria-hidden />
+
+        <div className="container relative grid items-center gap-12 py-20 md:py-28 lg:grid-cols-[1.15fr_0.85fr] lg:py-32">
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            {home.heroBadge && (
+              <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm text-white/90 backdrop-blur">
+                <Sparkles className="h-4 w-4 text-cyan-200" /> {home.heroBadge}
+              </span>
+            )}
+            <h1 className="font-display text-4xl font-bold leading-[1.15] text-white md:text-6xl">
+              <span className="text-gradient-light">{home.heroTitle}</span>
             </h1>
-            <div className="relative inline-block mb-6">
-              <span className="absolute -left-6 -top-4 text-6xl md:text-8xl font-serif text-primary-foreground/20 select-none leading-none">&ldquo;</span>
-              <p className="font-display text-2xl md:text-3xl font-bold text-primary-foreground tracking-wide px-8">
-                We are <span className="text-accent">Nabarun</span>, We are <span className="text-accent">Champion.</span>
-              </p>
-              <span className="absolute -right-4 -bottom-6 text-6xl md:text-8xl font-serif text-primary-foreground/20 select-none leading-none">&rdquo;</span>
-              <div className="mt-3 mx-auto w-24 h-0.5 bg-primary-foreground/40 rounded-full" />
+            {motto && <p className="mt-5 font-display text-xl font-semibold tracking-wide text-white/90 md:text-2xl">&ldquo;{motto}&rdquo;</p>}
+            <p className="mt-5 max-w-2xl text-lg text-white/75 md:text-xl">{home.heroSubtitle}</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button size="lg" asChild className="rounded-full bg-white px-7 font-semibold text-teal-900 shadow-lg shadow-black/20 hover:bg-white/90">
+                <Link to={primaryHref}>{home.primaryCtaLabel} <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+              {home.secondaryCtaLabel && (
+                <Button size="lg" variant="outline" asChild className="rounded-full border-white/30 bg-white/5 px-7 text-white backdrop-blur hover:bg-white/15 hover:text-white">
+                  <Link to={secondaryHref}>{home.secondaryCtaLabel}</Link>
+                </Button>
+              )}
             </div>
-            <p className="text-lg md:text-xl text-primary-foreground/80 mb-8 max-w-2xl">
-              নবারুণ পাবলিক স্কুল ও বিপ্লব লোপা মেমোরিয়াল গার্লস স্কুলের ছাত্র-ছাত্রীদের তথ্য ব্যবস্থাপনা ও প্রাক্তন ছাত্র নেটওয়ার্ক প্ল্যাটফর্ম।
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Button size="lg" variant="secondary" asChild className="font-semibold">
-                <Link to="/register">রেজিস্টার করুন <ArrowRight className="ml-2 h-4 w-4" /></Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
-                <Link to="/alumni">প্রাক্তন ছাত্র দেখুন</Link>
-              </Button>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, delay: 0.15 }}
+            className="relative mx-auto hidden w-full max-w-md lg:block"
+          >
+            <div className="absolute -inset-6 rounded-[2rem] bg-white/10 blur-2xl" aria-hidden />
+            <div className="relative rounded-3xl border border-white/20 bg-white/10 p-6 shadow-2xl backdrop-blur-xl">
+              <div className="mb-5">
+                <div className="inline-block rounded-2xl bg-white p-3 shadow-md"><img src={nabarunLogo} alt="" className="h-12 w-auto" /></div>
+                <p className="mt-3 text-sm font-medium text-white/80">{institutions.length}টি প্রতিষ্ঠান · এক পরিবার</p>
+              </div>
+              <ul className="space-y-3">
+                {institutions.map((inst) => (
+                  <li key={inst.id} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-md">
+                    <img src={inst.logo} alt="" className="h-11 w-11 shrink-0 object-contain" />
+                    <span className="text-sm font-semibold leading-snug text-slate-800">{inst.nameBn}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-5 flex items-center gap-2 text-xs text-white/80">
+                <CheckCircle2 className="h-4 w-4 text-emerald-300" /> প্রতিটি প্রোফাইল অ্যাডমিন যাচাইকৃত
+              </div>
             </div>
           </motion.div>
         </div>
       </section>
 
       {/* Stats */}
-      <section className="border-b bg-card">
-        <div className="container py-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {displayStats.map((s, i) => (
-              <motion.div key={s.label} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="text-center">
-                <div className="text-3xl md:text-4xl font-display font-bold text-primary">{s.value}</div>
-                <div className="text-sm text-muted-foreground mt-1">{s.label}</div>
-              </motion.div>
+      <section className="relative z-10 -mt-10">
+        <div className="container">
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border bg-border shadow-elevated md:grid-cols-4">
+            {displayStats.map((s) => (
+              <div key={s.label} className="bg-card px-4 py-6 text-center">
+                <div className="font-display text-3xl font-bold text-primary md:text-4xl">
+                  {s.value > 0 ? <CountUp value={s.value} suffix={s.plus ? "+" : ""} /> : "—"}
+                </div>
+                <div className="mt-1 text-sm text-muted-foreground">{s.label}</div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Notices marquee */}
-      {notices.length > 0 && (
-        <section className="bg-accent/10 border-b">
-          <div className="container py-3 flex items-center gap-3">
-            <Badge variant="destructive" className="shrink-0 flex items-center gap-1">
+      {/* Notices ticker */}
+      {home.showNotices && notices.length > 0 && (
+        <section className="mt-10 border-y bg-accent/5">
+          <div className="container flex items-center gap-3 py-3">
+            <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
               <Bell className="h-3 w-3" /> নোটিশ
-            </Badge>
-            <div className="overflow-hidden flex-1">
-              <div className="flex gap-8 animate-marquee whitespace-nowrap">
-                {notices.map((n) => (
-                  <Link key={n.id} to="/notices" className="text-sm font-medium hover:text-primary transition-colors">
+            </span>
+            <div className="flex-1 overflow-hidden" aria-live="off">
+              <div className="animate-marquee flex w-max gap-10 whitespace-nowrap hover:[animation-play-state:paused]">
+                {[...notices, ...notices].map((n, i) => (
+                  <Link key={`${n.id}-${i}`} to="/notices" className="text-sm font-medium transition-colors hover:text-primary" tabIndex={i >= notices.length ? -1 : 0} aria-hidden={i >= notices.length}>
                     📌 {n.title}
                   </Link>
                 ))}
@@ -173,165 +175,176 @@ export default function Index() {
       )}
 
       {/* Institutions */}
-      <section className="py-20 bg-muted/30">
-        <div className="container">
-          <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground mb-4">
-              <GraduationCap className="h-4 w-4" /> আমাদের প্রতিষ্ঠানসমূহ
-            </div>
-            <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">নবারুণ এডুকেশন ফ্যামিলি</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">তিনটি প্রতিষ্ঠানের সমন্বয়ে গড়ে ওঠা একটি শিক্ষা পরিবার।</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {institutions.map((inst, i) => (
-              <motion.div key={inst.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-                <Card className="h-full shadow-card hover:shadow-elevated transition-shadow text-center">
-                  <CardContent className="pt-8 pb-6">
-                    <div className="mx-auto mb-5 flex h-28 w-full max-w-[220px] items-center justify-center rounded-xl border bg-white p-3">
-                      <img src={inst.logo} alt={`${inst.name} এর লোগো`} className="max-h-full w-auto object-contain" loading="lazy" />
-                    </div>
-                    <h3 className="font-display font-semibold text-lg mb-2">{inst.name}</h3>
-                    <p className="text-sm text-muted-foreground">{inst.desc}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-20">
-        <div className="container">
-          <div className="text-center mb-14">
-            <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">সবকিছু এক জায়গায়</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">আধুনিক টুলস দিয়ে ছাত্র ও প্রাক্তন ছাত্রদের তথ্য ব্যবস্থাপনার সম্পূর্ণ সিস্টেম।</p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((f, i) => (
-              <motion.div key={f.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="glass-card rounded-xl p-6 shadow-card hover:shadow-elevated transition-shadow">
-                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                  <f.icon className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-display font-semibold text-lg mb-2">{f.title}</h3>
-                <p className="text-sm text-muted-foreground">{f.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Upcoming Events */}
-      {events.length > 0 && (
-        <section className="py-20 bg-muted/30">
+      {institutions.length > 0 && (
+        <section className="py-20">
           <div className="container">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground mb-4">
-                <Calendar className="h-4 w-4" /> আসন্ন ইভেন্ট
-              </div>
-              <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">আসন্ন অনুষ্ঠান</h2>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              {events.map((e, i) => (
-                <motion.div key={e.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-                  <Card className="shadow-card hover:shadow-elevated transition-shadow">
-                    <CardContent className="pt-6 pb-5">
-                      <div className="flex items-start gap-4">
-                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Calendar className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-display font-semibold mb-1">{e.title}</h3>
-                          <p className="text-sm text-muted-foreground">{new Date(e.event_date).toLocaleDateString("bn-BD")}</p>
-                          {e.location && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                              <MapPin className="h-3 w-3" /> {e.location}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+            <SectionHeading badge="আমাদের প্রতিষ্ঠানসমূহ" icon={GraduationCap} title={home.institutionsTitle} subtitle={home.institutionsSubtitle} />
+            <div className={`grid gap-6 ${institutions.length >= 3 ? "md:grid-cols-3" : institutions.length === 2 ? "md:grid-cols-2" : "mx-auto max-w-md"}`}>
+              {institutions.map((inst, i) => (
+                <motion.div
+                  key={inst.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="card-lift group flex h-full flex-col items-center rounded-2xl border bg-card p-6 text-center shadow-card"
+                >
+                  <div className="mb-5 flex h-28 w-full max-w-[220px] items-center justify-center rounded-xl border bg-white p-3 transition-transform duration-300 group-hover:scale-[1.03]">
+                    <img src={inst.logo} alt={`${inst.name} এর লোগো`} className="max-h-full w-auto object-contain" loading="lazy" />
+                  </div>
+                  <h3 className="font-display text-lg font-semibold">{inst.nameBn}</h3>
+                  <p className="text-xs text-muted-foreground">{inst.name}</p>
+                  {inst.established && <span className="mt-2 rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">স্থাপিত {inst.established}</span>}
+                  {inst.desc && <p className="mt-3 text-sm text-muted-foreground">{inst.desc}</p>}
                 </motion.div>
               ))}
             </div>
-            <div className="text-center mt-8">
-              <Button variant="outline" asChild>
-                <Link to="/events">সকল ইভেন্ট দেখুন <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <div className="mt-8 text-center">
+              <Button variant="outline" asChild className="rounded-full"><Link to="/about#institutions">যোগাযোগসহ বিস্তারিত <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Features */}
+      <section className="relative overflow-hidden bg-muted/40 py-20">
+        <div className="orb -left-24 top-1/2 h-72 w-72 bg-primary/10" aria-hidden />
+        <div className="container relative">
+          <SectionHeading title={home.featuresTitle} subtitle={home.featuresSubtitle} />
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {home.features.filter((f) => f.title.trim()).map((f, i) => {
+              const Icon = featureIcons[i % featureIcons.length];
+              return (
+              <motion.div
+                key={f.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.07 }}
+                className="card-lift rounded-2xl border bg-card p-6 shadow-card"
+              >
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Icon className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 font-display text-lg font-semibold">{f.title}</h3>
+                <p className="text-sm text-muted-foreground">{f.desc}</p>
+              </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="py-20">
+        <div className="container">
+          <SectionHeading badge="কীভাবে যুক্ত হবেন" icon={UserCheck} title="তিন ধাপে নবারুণ পরিবারে" subtitle="ভুয়া অ্যাকাউন্ট ঠেকাতে প্রতিটি আবেদন অ্যাডমিন নিজে যাচাই করেন।" />
+          <ol className="relative grid gap-6 md:grid-cols-3">
+            <div className="hairline absolute left-[16%] right-[16%] top-8 hidden md:block" aria-hidden />
+            {home.steps.filter((st) => st.title.trim()).map((s, i) => {
+              const StepIcon = stepIcons[i % stepIcons.length];
+              return (
+              <motion.li
+                key={s.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.12 }}
+                className="relative text-center"
+              >
+                <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
+                  <StepIcon className="h-7 w-7" />
+                  <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-background text-xs font-bold text-primary ring-2 ring-primary">{i + 1}</span>
+                </div>
+                <h3 className="mb-1 font-display text-lg font-semibold">{s.title}</h3>
+                <p className="mx-auto max-w-xs text-sm text-muted-foreground">{s.desc}</p>
+              </motion.li>
+              );
+            })}
+          </ol>
+        </div>
+      </section>
+
+      {/* Upcoming events */}
+      {home.showEvents && events.length > 0 && (
+        <section className="bg-muted/40 py-20">
+          <div className="container">
+            <SectionHeading badge="আসন্ন ইভেন্ট" icon={Calendar} title="আসন্ন অনুষ্ঠান" />
+            <div className="grid gap-6 md:grid-cols-3">
+              {events.map((e, i) => (
+                <motion.div key={e.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                  className="card-lift flex items-start gap-4 rounded-2xl border bg-card p-5 shadow-card">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Calendar className="h-6 w-6" /></div>
+                  <div>
+                    <h3 className="mb-1 font-display font-semibold">{e.title}</h3>
+                    <p className="text-sm text-muted-foreground">{new Date(e.event_date).toLocaleDateString("bn-BD", { year: "numeric", month: "long", day: "numeric" })}</p>
+                    {e.location && <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3 w-3" /> {e.location}</p>}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            <div className="mt-8 text-center">
+              <Button variant="outline" asChild className="rounded-full"><Link to="/events">সকল ইভেন্ট দেখুন <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Top alumni */}
+      {home.showTopAlumni && topAlumni.length > 0 && (
+        <section className="py-20">
+          <div className="container">
+            <SectionHeading badge="আমাদের গর্ব" icon={Trophy} title="বিশিষ্ট প্রাক্তন ছাত্র" subtitle="বিশেষ অর্জনকারী প্রাক্তন ছাত্রদের প্রোফাইল।" />
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {topAlumni.map((a, i) => (
+                <motion.div key={i} initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                  className="card-lift rounded-2xl border bg-card p-6 text-center shadow-card">
+                  <Avatar className="mx-auto mb-4 h-20 w-20 ring-4 ring-primary/10">
+                    {a.photo ? <AvatarImage src={a.photo} alt={a.full_name ?? ""} /> : null}
+                    <AvatarFallback className="bg-primary/10 text-xl font-bold text-primary">{initialsOf(a.full_name)}</AvatarFallback>
+                  </Avatar>
+                  <h3 className="font-display text-lg font-semibold">{a.full_name || "—"}</h3>
+                  {a.current_profession && <p className="text-sm font-medium text-primary">{a.current_profession}</p>}
+                  {a.batch_year && <p className="text-xs text-muted-foreground">ব্যাচ {a.batch_year}</p>}
+                  {a.achievement && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">🏆 {a.achievement}</p>}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {home.showMemories && <MemoriesSection />}
+      {home.showTestimonials && <TestimonialsSection />}
+
+      {/* Banner */}
+      {home.bannerText && (
+        <section className="relative overflow-hidden bg-hero-gradient py-20">
+          <div className="bg-grid absolute inset-0" aria-hidden />
+          <div className="container relative text-center">
+            <motion.div initial={{ opacity: 0, scale: 0.94 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="mx-auto max-w-3xl">
+              <h2 className="font-display text-3xl font-bold tracking-wide text-white md:text-5xl">&ldquo;<span className="text-gradient-light">{home.bannerText}</span>&rdquo;</h2>
+              <div className="mx-auto mb-4 mt-6 h-1 w-28 rounded-full bg-white/30" />
+              {home.bannerSubtext && <p className="text-lg text-white/70">{home.bannerSubtext}</p>}
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* CTA */}
+      <section className="py-20">
+        <div className="container">
+          <div className="relative overflow-hidden rounded-3xl bg-hero-gradient px-6 py-14 text-center shadow-elevated md:px-12">
+            <div className="orb -right-10 -top-16 h-56 w-56 bg-cyan-300/30" aria-hidden />
+            <div className="orb -bottom-20 -left-10 h-56 w-56 bg-teal-300/25" aria-hidden />
+            <div className="relative">
+              <h2 className="mb-3 font-display text-3xl font-bold text-white md:text-4xl">{home.ctaTitle}</h2>
+              <p className="mx-auto mb-8 max-w-lg text-white/80">{home.ctaText}</p>
+              <Button size="lg" asChild className="rounded-full bg-white px-8 font-semibold text-teal-900 shadow-lg shadow-black/20 hover:bg-white/90">
+                <Link to="/register">{home.ctaButton} <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
             </div>
           </div>
-        </section>
-      )}
-
-      {/* Top Alumni */}
-      {topAlumni.length > 0 && (
-        <section className="py-20">
-          <div className="container">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground mb-4">
-                <Trophy className="h-4 w-4" /> আমাদের গর্ব
-              </div>
-              <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">বিশিষ্ট প্রাক্তন ছাত্র</h2>
-              <p className="text-muted-foreground">বিশেষ অর্জনকারী প্রাক্তন ছাত্রদের প্রোফাইল।</p>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {topAlumni.map((a, i) => (
-                <motion.div key={i} initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
-                  <Card className="shadow-card hover:shadow-elevated transition-shadow text-center">
-                    <CardContent className="pt-6 pb-5">
-                      <Avatar className="h-20 w-20 mx-auto mb-4">
-                        {a.photo ? <AvatarImage src={a.photo} /> : null}
-                        <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
-                          {(a.full_name || "?").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <h3 className="font-display font-semibold text-lg">{a.full_name || "—"}</h3>
-                      {a.current_profession && <p className="text-sm text-primary font-medium">{a.current_profession}</p>}
-                      {a.batch_year && <p className="text-xs text-muted-foreground">ব্যাচ {a.batch_year}</p>}
-                      {a.achievement && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">🏆 {a.achievement}</p>}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Memories */}
-      <MemoriesSection />
-
-      {/* Testimonials */}
-      <TestimonialsSection />
-
-      {/* Tagline Banner */}
-      <section className="py-20 bg-hero-gradient relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
-        <div className="container text-center relative">
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-            <div className="max-w-3xl mx-auto">
-              <span className="text-8xl md:text-9xl font-serif text-primary-foreground/15 select-none leading-none block">&ldquo;</span>
-              <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground -mt-10 md:-mt-14 tracking-wide">
-                We are <span className="underline decoration-4 decoration-accent underline-offset-8">Nabarun</span>,
-                <br className="hidden sm:block" /> We are <span className="underline decoration-4 decoration-accent underline-offset-8">Champion</span>.
-              </h2>
-              <span className="text-8xl md:text-9xl font-serif text-primary-foreground/15 select-none leading-none block -mt-4">&rdquo;</span>
-              <div className="mx-auto w-32 h-1 bg-primary-foreground/30 rounded-full mt-2 mb-4" />
-              <p className="text-primary-foreground/70 text-lg">একতা, শৃঙ্খলা ও শ্রেষ্ঠত্ব — আমাদের পরিচয়।</p>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="bg-hero-gradient py-20">
-        <div className="container text-center">
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground mb-4">আজই যোগ দিন!</h2>
-          <p className="text-primary-foreground/80 mb-8 max-w-lg mx-auto">রেজিস্টার করুন এবং নবারুণ পরিবারের প্রাক্তন ছাত্র নেটওয়ার্কে সংযুক্ত হন।</p>
-          <Button size="lg" variant="secondary" asChild className="font-semibold">
-            <Link to="/register">অ্যাকাউন্ট তৈরি করুন <ArrowRight className="ml-2 h-4 w-4" /></Link>
-          </Button>
         </div>
       </section>
     </div>

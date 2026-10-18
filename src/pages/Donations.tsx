@@ -1,3 +1,5 @@
+import { usePageMeta } from "@/hooks/usePageMeta";
+import PageHero from "@/components/site/PageHero";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { asciiDigits } from "@/lib/forms";
@@ -25,6 +27,7 @@ interface Campaign {
 const PAYMENT_METHODS = ["বিকাশ", "নগদ", "রকেট", "ব্যাংক ট্রান্সফার", "নগদ অর্থ"];
 
 export default function Donations() {
+  usePageMeta("অনুদান", "নবারুণ এডুকেশন ফ্যামিলির উন্নয়নে অবদান রাখুন।");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState<string>("");
@@ -90,13 +93,9 @@ export default function Donations() {
   const totalDonated = Object.values(donationTotals).reduce((a, b) => a + b, 0);
 
   return (
+    <>
+    <PageHero badge="অনুদান" title="অনুদান" subtitle="নবারুণ এডুকেশন ফ্যামিলির উন্নয়নে আপনার অবদান রাখুন" />
     <div className="container py-12">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
-        <h1 className="font-display text-4xl font-bold mb-3">💝 অনুদান</h1>
-        <p className="text-muted-foreground max-w-xl mx-auto">
-          নবারুণ এডুকেশন ফ্যামিলির উন্নয়নে আপনার অবদান রাখুন
-        </p>
-      </motion.div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10 max-w-2xl mx-auto">
@@ -243,5 +242,6 @@ export default function Donations() {
         </Card>
       </div>
     </div>
+    </>
   );
 }

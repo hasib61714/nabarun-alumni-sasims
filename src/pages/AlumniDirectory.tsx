@@ -1,6 +1,9 @@
+import { safeHttpsUrl } from "@/lib/memories";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import PageHero from "@/components/site/PageHero";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +32,7 @@ const CHART_COLORS = [
 ];
 
 export default function AlumniDirectory() {
+  usePageMeta("ডিরেক্টরি", "পেশা, ব্যাচ ও অবস্থান অনুযায়ী অ্যালামনাই খুঁজুন।");
   const [alumni, setAlumni] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -80,13 +84,9 @@ export default function AlumniDirectory() {
   }, [alumni]);
 
   return (
+    <>
+    <PageHero badge="অ্যালামনাই" title="অ্যালামনাই ডিরেক্টরি" subtitle="নবারুণের অনুমোদিত প্রাক্তন ছাত্রদের পেশা, ব্যাচ ও অবস্থান অনুযায়ী খুঁজুন" />
     <div className="container py-12">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
-        <h1 className="font-display text-4xl font-bold mb-3">🗂️ অ্যালামনাই ডিরেক্টরি</h1>
-        <p className="text-muted-foreground max-w-xl mx-auto">
-          নবারুণের অনুমোদিত প্রাক্তন ছাত্রদের পেশা, ব্যাচ ও অবস্থান অনুযায়ী খুঁজুন
-        </p>
-      </motion.div>
 
       {/* Stats Overview */}
       <div className="grid md:grid-cols-3 gap-4 mb-8">
@@ -129,29 +129,31 @@ export default function AlumniDirectory() {
       {alumni.length > 0 && (
         <div className="grid md:grid-cols-2 gap-6 mb-10">
           <Card className="shadow-card">
-            <CardHeader><CardTitle className="text-sm font-display">পেশা অনুযায়ী বিভাজন</CardTitle></CardHeader>
+            <CardHeader><h2 className="font-display text-sm font-semibold leading-none tracking-tight">পেশা অনুযায়ী বিভাজন</h2></CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
+              <div aria-hidden="true" {...({ inert: "" } as object)}><ResponsiveContainer width="100%" height={200}>
+                <PieChart tabIndex={-1} accessibilityLayer={false}>
                   <Pie data={professionStats} cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
                     {professionStats.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
                 </PieChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
+              <p className="sr-only">{professionStats.map((x) => `${x.name}: ${x.value}`).join(", ")}</p>
             </CardContent>
           </Card>
           <Card className="shadow-card">
-            <CardHeader><CardTitle className="text-sm font-display">ব্যাচ অনুযায়ী বিভাজন</CardTitle></CardHeader>
+            <CardHeader><h2 className="font-display text-sm font-semibold leading-none tracking-tight">ব্যাচ অনুযায়ী বিভাজন</h2></CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
+              <div aria-hidden="true" {...({ inert: "" } as object)}><ResponsiveContainer width="100%" height={200}>
+                <PieChart tabIndex={-1} accessibilityLayer={false}>
                   <Pie data={batchStats} cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
                     {batchStats.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
                 </PieChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
+              <p className="sr-only">{batchStats.map((x) => `${x.name}: ${x.value}`).join(", ")}</p>
             </CardContent>
           </Card>
         </div>
@@ -164,14 +166,14 @@ export default function AlumniDirectory() {
           <Input placeholder="নাম, পেশা বা অবস্থান দিয়ে খুঁজুন..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <Select value={batchFilter} onValueChange={setBatchFilter}>
-          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="ব্যাচ" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-40" aria-label="ব্যাচ অনুযায়ী ফিল্টার"><SelectValue placeholder="ব্যাচ" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">সকল ব্যাচ</SelectItem>
             {batches.map((b) => <SelectItem key={b} value={b!.toString()}>ব্যাচ {b}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={professionFilter} onValueChange={setProfessionFilter}>
-          <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="পেশা" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-48" aria-label="পেশা অনুযায়ী ফিল্টার"><SelectValue placeholder="পেশা" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">সকল পেশা</SelectItem>
             {professions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
@@ -204,12 +206,12 @@ export default function AlumniDirectory() {
               <Card className="shadow-card hover:shadow-elevated transition-shadow h-full">
                 <CardContent className="p-5 flex flex-col items-center text-center">
                   <Avatar className="h-16 w-16 mb-3">
-                    {a.photo ? <AvatarImage src={a.photo} /> : null}
+                    {safeHttpsUrl(a.photo) ? <AvatarImage src={safeHttpsUrl(a.photo) ?? undefined} alt={a.full_name ?? ""} /> : null}
                     <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
                       {(a.full_name || "?")[0]?.toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <h3 className="font-semibold text-sm">{a.full_name || "—"}</h3>
+                  <h3 className="text-sm font-semibold">{a.full_name || "—"}</h3>
                   {a.batch_year && (
                     <Badge variant="secondary" className="mt-1 text-[10px]">ব্যাচ {a.batch_year}</Badge>
                   )}
@@ -229,13 +231,13 @@ export default function AlumniDirectory() {
                     </p>
                   )}
                   <div className="flex items-center gap-2 mt-3">
-                    {a.linkedin_link && (
-                      <a href={a.linkedin_link} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                    {safeHttpsUrl(a.linkedin_link) && (
+                      <a href={safeHttpsUrl(a.linkedin_link) ?? undefined} aria-label={`${a.full_name ?? "প্রাক্তন ছাত্র"} — LinkedIn`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
                         <Linkedin className="h-4 w-4" />
                       </a>
                     )}
-                    {a.facebook_link && (
-                      <a href={a.facebook_link} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                    {safeHttpsUrl(a.facebook_link) && (
+                      <a href={safeHttpsUrl(a.facebook_link) ?? undefined} aria-label={`${a.full_name ?? "প্রাক্তন ছাত্র"} — Facebook`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
                         <Facebook className="h-4 w-4" />
                       </a>
                     )}
@@ -247,5 +249,6 @@ export default function AlumniDirectory() {
         </div>
       )}
     </div>
+    </>
   );
 }

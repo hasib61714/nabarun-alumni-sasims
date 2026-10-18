@@ -47,12 +47,12 @@ export default function OverviewSection({ userId, email, fallbackName, onNavigat
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <Avatar className="h-20 w-20 border-4 border-white/30 shadow-lg">
               {photo && <AvatarImage src={photo} alt="" />}
-              <AvatarFallback className="bg-white/20 text-2xl font-bold text-white">{initialsOf(name, "S")}</AvatarFallback>
+              <AvatarFallback className="bg-black/25 text-2xl font-bold text-white">{initialsOf(name, "S")}</AvatarFallback>
             </Avatar>
-            <div className="min-w-0 flex-1 text-primary-foreground">
-              <p className="text-sm text-primary-foreground/80">স্বাগতম 👋</p>
+            <div className="min-w-0 flex-1 text-white">
+              <p className="text-sm text-white/80">স্বাগতম 👋</p>
               <h2 className="truncate font-display text-2xl font-bold sm:text-3xl">{name}</h2>
-              <p className="truncate text-sm text-primary-foreground/80">{email}{profile?.batch_year ? ` · ব্যাচ ${profile.batch_year}` : ""}{profile?.roll ? ` · রোল ${profile.roll}` : ""}</p>
+              <p className="truncate text-sm text-white/80">{email}{profile?.batch_year ? ` · ব্যাচ ${profile.batch_year}` : ""}{profile?.roll ? ` · রোল ${profile.roll}` : ""}</p>
             </div>
             <StatusBadge tone={approved ? "approved" : "pending"} label={approved ? "অনুমোদিত" : "অনুমোদনের অপেক্ষায়"} className="self-start sm:self-center" />
           </div>
@@ -73,7 +73,7 @@ export default function OverviewSection({ userId, email, fallbackName, onNavigat
         <div className={`border-t px-5 py-3 text-sm sm:px-6 ${approved ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-200" : "bg-amber-50 text-amber-900 dark:bg-amber-500/10 dark:text-amber-200"}`}>
           {approved
             ? <>আপনার প্রোফাইল অনুমোদিত — আপনি এখন <Link to="/directory" className="font-medium underline underline-offset-2">অ্যালামনাই ডিরেক্টরিতে</Link> সবার কাছে দৃশ্যমান।</>
-            : "আপনার প্রোফাইল অ্যাডমিনের অনুমোদনের অপেক্ষায় আছে। অনুমোদনের পর আপনি অ্যালামনাই ডিরেক্টরিতে দৃশ্যমান হবেন। ততক্ষণ আপনি স্মৃতি লিখতে ও প্রোফাইল সাজাতে পারেন।"}
+            : "আপনার প্রোফাইল অ্যাডমিনের অনুমোদনের অপেক্ষায় আছে।"}
         </div>
       </motion.section>
 
