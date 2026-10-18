@@ -26,6 +26,7 @@ import MemoryDetail from "./pages/MemoryDetail";
 import ScrollToTop from "./components/ScrollToTop";
 import { ConfirmProvider } from "./components/common/ConfirmDialog";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import { LanguageProvider } from "./lib/i18n";
 
 const StudentDashboard = lazy(() => import("./pages/student/Dashboard"));
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
@@ -40,6 +41,7 @@ const PageLoader = () => (
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+  <LanguageProvider>
   <ErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -79,6 +81,7 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
   </ErrorBoundary>
+  </LanguageProvider>
   </ThemeProvider>
 );
 

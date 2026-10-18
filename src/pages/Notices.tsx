@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Bell, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { useLang } from "@/lib/i18n";
+import { formatDate } from "@/lib/format";
 
 interface Notice {
   id: string;
@@ -14,7 +16,8 @@ interface Notice {
 }
 
 export default function Notices() {
-  usePageMeta("নোটিশ", "সর্বশেষ নোটিশ ও ঘোষণা।");
+  const { t, lang } = useLang();
+  usePageMeta(t("নোটিশ", "Notices"), t("সর্বশেষ নোটিশ ও ঘোষণা।", "Latest notices and announcements."));
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,20 +42,18 @@ export default function Notices() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString("bn-BD", { year: "numeric", month: "long", day: "numeric" });
-
   return (
     <div>
-      <PageHero badge="নোটিশ বোর্ড" title="নোটিশ সমূহ" subtitle="নবারুণ এডুকেশন ফ্যামিলির সর্বশেষ নোটিশ ও ঘোষণা।" />
+      <PageHero badge={t("নোটিশ বোর্ড", "Notice Board")} title={t("নোটিশ সমূহ", "Notices")} subtitle={t("নবারুণ এডুকেশন ফ্যামিলির সর্বশেষ নোটিশ ও ঘোষণা।", "Latest notices and announcements from the Nabarun Education Family.")} />
 
       <section className="py-16">
         <div className="container max-w-3xl">
           {loading ? (
-            <div className="text-center py-20 text-muted-foreground animate-pulse font-display text-xl">লোড হচ্ছে...</div>
+            <div className="text-center py-20 text-muted-foreground animate-pulse font-display text-xl">{t("লোড হচ্ছে...", "Loading...")}</div>
           ) : notices.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
               <Bell className="h-16 w-16 mx-auto mb-4 opacity-30" />
-              <p className="text-lg">এখন কোনো নোটিশ নেই।</p>
+              <p className="text-lg">{t("এখন কোনো নোটিশ নেই।", "There are no notices right now.")}</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -63,7 +64,7 @@ export default function Notices() {
                       <div className="flex items-start justify-between gap-4">
                         <CardTitle className="font-display text-lg">{n.title}</CardTitle>
                         <span className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
-                          <Calendar className="h-3 w-3" /> {formatDate(n.created_at)}
+                          <Calendar className="h-3 w-3" /> {formatDate(n.created_at, lang)}
                         </span>
                       </div>
                     </CardHeader>

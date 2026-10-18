@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { ExternalLink, Loader2, RotateCcw, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,13 @@ import { attempt } from "@/hooks/useAdminData";
 import { useResetSetting, useSaveSetting, useSiteSettings } from "@/hooks/useSiteSettings";
 import { institutions as baseInstitutions } from "@/data/institutions";
 import { NAV, isGroup } from "@/lib/navigation";
-import { DEFAULT_SETTINGS, safeHref, telHref, type CardText, type InstitutionOverride, type SettingsKey, type SiteSettings } from "@/lib/siteSettings";
+import type { Lang } from "@/lib/i18n";
+import { DEFAULT_SETTINGS, DEFAULT_SETTINGS_EN, NEUTRAL_FIELDS, safeHref, telHref, type CardText, type InstitutionOverride, type SettingsKey, type SiteSettings } from "@/lib/siteSettings";
 import { SectionHeader } from "../AdminCommon";
+
+/** Which language the admin is editing; English hides the fields that are shared between languages. */
+const EditLang = createContext<Lang>("bn");
+const useEditLang = () => useContext(EditLang);
 
 type FieldKind = "text" | "textarea" | "switch" | "link" | "url" | "email";
 interface FieldDef {
@@ -66,7 +71,9 @@ interface GroupFormProps {
 }
 
 /** One settings group rendered from a list of field definitions. */
-function GroupForm({ groupKey, fields, current, base, derive, isCustomised }: GroupFormProps) {
+function GroupForm({ groupKey, fields: allFields, current, base, derive, isCustomised }: GroupFormProps) {
+  const lang = useEditLang();
+  const fields = lang === "en" ? allFields.filter((f) => !NEUTRAL_FIELDS[groupKey].includes(f.name)) : allFields;
   const confirm = useConfirm();
   const save = useSaveSetting();
   const reset = useResetSetting();
@@ -85,13 +92,13 @@ function GroupForm({ groupKey, fields, current, base, derive, isCustomised }: Gr
     if (bad) return;
     const clean: Values = {};
     for (const f of fields) { const v = values[f.name]; clean[f.name] = typeof v === "string" ? v.trim() : v; }
-    const ok = await attempt(save.mutateAsync({ key: groupKey, value: { ...base, ...clean, ...(derive?.(clean) ?? {}) } }), "সংরক্ষিত হয়েছে — ওয়েবসাইটে এখনই দেখা যাবে");
+    const ok = await attempt(save.mutateAsync({ key: groupKey, lang, value: { ...base, ...clean, ...(lang === "bn" ? derive?.(clean) ?? {} : {}) } }), "সংরক্ষিত হয়েছে — ওয়েবসাইটে এখনই দেখা যাবে");
     if (ok) form.reset(clean);
   });
 
   const onReset = async () => {
     const ok = await confirm({ title: "মূল লেখায় ফিরবেন?", description: "এই অংশের সব পরিবর্তন মুছে ওয়েবসাইট আগের ডিফল্ট লেখায় ফিরে যাবে।", confirmLabel: "ফিরুন", destructive: true });
-    if (ok) await attempt(reset.mutateAsync(groupKey), "ডিফল্ট লেখা ফিরিয়ে আনা হয়েছে");
+    if (ok) await attempt(reset.mutateAsync({ key: groupKey, lang }), "ডিফল্ট লেখা ফিরিয়ে আনা হয়েছে");
   };
 
   return (
@@ -126,6 +133,7 @@ function GroupForm({ groupKey, fields, current, base, derive, isCustomised }: Gr
 
 /** Titles and texts of the home page's feature cards and "how to join" steps. */
 function CardsEditor({ home, isCustomised }: { home: SiteSettings["home"]; isCustomised: boolean }) {
+  const lang = useEditLang();
   const save = useSaveSetting();
   const [features, setFeatures] = useState<CardText[]>(home.features);
   const [steps, setSteps] = useState<CardText[]>(home.steps);
@@ -134,7 +142,7 @@ function CardsEditor({ home, isCustomised }: { home: SiteSettings["home"]; isCus
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await attempt(save.mutateAsync({ key: "home", value: { ...home, features, steps } }), "সংরক্ষিত হয়েছে");
+    await attempt(save.mutateAsync({ key: "home", lang, value: { ...home, features, steps } }), "সংরক্ষিত হয়েছে");
   };
   const edit = (list: CardText[], set: (v: CardText[]) => void, i: number, patch: Partial<CardText>) => set(list.map((c, j) => (j === i ? { ...c, ...patch } : c)));
   const group = (title: string, hint: string, list: CardText[], set: (v: CardText[]) => void) => (
@@ -222,6 +230,8 @@ const FOOTER: FieldDef[] = [
 
 /** Rename and hide menu entries. */
 function NavEditor({ nav, isCustomised }: { nav: SiteSettings["nav"]; isCustomised: boolean }) {
+  const lang = useEditLang();
+  const en = lang === "en";
   const confirm = useConfirm();
   const save = useSaveSetting();
   const reset = useResetSetting();
@@ -230,16 +240,18 @@ function NavEditor({ nav, isCustomised }: { nav: SiteSettings["nav"]; isCustomis
   useEffect(() => { setLabels(nav.labels); setHidden(new Set(nav.hidden)); }, [nav]);
 
   const dirty = JSON.stringify({ l: labels, h: [...hidden].sort() }) !== JSON.stringify({ l: nav.labels, h: [...nav.hidden].sort() });
-  const rows = NAV.flatMap((e) => (isGroup(e) ? [{ id: e.id, label: e.label, depth: 0, group: true }, ...e.items.map((i) => ({ id: i.id, label: i.label, depth: 1, group: false }))] : [{ id: e.id, label: e.label, depth: 0, group: false }]));
+  const rows = NAV.flatMap((e) => (isGroup(e)
+    ? [{ id: e.id, label: en ? e.labelEn : e.label, depth: 0, group: true }, ...e.items.map((i) => ({ id: i.id, label: en ? i.labelEn : i.label, depth: 1, group: false }))]
+    : [{ id: e.id, label: en ? e.labelEn : e.label, depth: 0, group: false }]));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanLabels = Object.fromEntries(Object.entries(labels).map(([k, v]) => [k, v.trim()]).filter(([k, v]) => v && v !== rows.find((r) => r.id === k)?.label));
-    await attempt(save.mutateAsync({ key: "nav", value: { labels: cleanLabels, hidden: [...hidden] } }), "মেনু সংরক্ষিত হয়েছে");
+    await attempt(save.mutateAsync({ key: "nav", lang, value: { labels: cleanLabels, hidden: [...hidden] } }), "মেনু সংরক্ষিত হয়েছে");
   };
   const onReset = async () => {
     if (await confirm({ title: "মেনু আগের অবস্থায় ফেরাবেন?", description: "সব নাম পরিবর্তন ও লুকানো আইটেম আগের মতো হয়ে যাবে।", confirmLabel: "ফেরান", destructive: true })) {
-      await attempt(reset.mutateAsync("nav"), "মেনু আগের অবস্থায় ফিরেছে");
+      await attempt(reset.mutateAsync({ key: "nav", lang }), "মেনু আগের অবস্থায় ফিরেছে");
     }
   };
 
@@ -253,10 +265,10 @@ function NavEditor({ nav, isCustomised }: { nav: SiteSettings["nav"]; isCustomis
               aria-label={`${r.label} — মেনুতে দেখানো নাম`} placeholder={r.label} value={labels[r.id] ?? ""} maxLength={40}
               onChange={(e) => setLabels((l) => ({ ...l, [r.id]: e.target.value }))} className={r.group ? "font-semibold" : ""}
             />
-            <label className="flex shrink-0 items-center gap-2 text-sm">
+            {!en && <label className="flex shrink-0 items-center gap-2 text-sm">
               <Switch checked={!hidden.has(r.id)} onCheckedChange={(on) => setHidden((h) => { const n = new Set(h); if (on) n.delete(r.id); else n.add(r.id); return n; })} aria-label={`${r.label} দেখান`} />
               <span className="hidden sm:inline">{hidden.has(r.id) ? "লুকানো" : "দেখানো"}</span>
-            </label>
+            </label>}
           </li>
         ))}
       </ul>
@@ -278,6 +290,10 @@ const INSTITUTION_FIELDS: { name: keyof InstitutionOverride; label: string; kind
 
 /** Name, contact details and visibility of the three institutions. */
 function InstitutionsEditor({ items, isCustomised }: { items: SiteSettings["institutions"]["items"]; isCustomised: boolean }) {
+  const lang = useEditLang();
+  const en = lang === "en";
+  // English only has the written text; contact details and visibility are shared with the Bengali version
+  const fieldDefs = en ? INSTITUTION_FIELDS.filter((f) => ["name", "desc", "address"].includes(f.name)) : INSTITUTION_FIELDS;
   const confirm = useConfirm();
   const save = useSaveSetting();
   const reset = useResetSetting();
@@ -288,11 +304,11 @@ function InstitutionsEditor({ items, isCustomised }: { items: SiteSettings["inst
       out[base.id] = {
         nameBn: o.nameBn ?? base.nameBn, name: o.name ?? base.name, established: o.established ?? base.established ?? "",
         phoneDisplay: o.phoneDisplay ?? base.phoneDisplay, email: o.email ?? base.email, mapUrl: o.mapUrl ?? base.mapUrl ?? "",
-        address: o.address ?? base.address ?? "", desc: o.desc ?? base.desc, hidden: o.hidden === true,
+        address: o.address ?? base.address ?? "", desc: o.desc ?? (en ? base.descEn : base.desc), hidden: o.hidden === true,
       };
     }
     return out;
-  }, [items]);
+  }, [items, en]);
   const [state, setState] = useState(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   useEffect(() => { setState(initial); setErrors({}); }, [initial]);
@@ -304,25 +320,25 @@ function InstitutionsEditor({ items, isCustomised }: { items: SiteSettings["inst
     e.preventDefault();
     const nextErrors: Record<string, string> = {};
     for (const [id, vals] of Object.entries(state)) {
-      for (const f of INSTITUTION_FIELDS) {
+      for (const f of fieldDefs) {
         const v = String(vals[f.name] ?? "").trim();
         if (!validLink(f.kind, v)) nextErrors[`${id}.${f.name}`] = linkError(f.kind);
       }
-      if (!String(vals.nameBn).trim()) nextErrors[`${id}.nameBn`] = "নাম দিন";
+      if (!en && !String(vals.nameBn).trim()) nextErrors[`${id}.nameBn`] = "নাম দিন";
     }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
     const value: SiteSettings["institutions"] = { items: {} };
     for (const [id, vals] of Object.entries(state)) {
-      const o: InstitutionOverride = { hidden: vals.hidden === true };
-      for (const f of INSTITUTION_FIELDS) (o as Record<string, string>)[f.name] = String(vals[f.name] ?? "").trim();
+      const o: InstitutionOverride = en ? {} : { hidden: vals.hidden === true };
+      for (const f of fieldDefs) (o as Record<string, string>)[f.name] = String(vals[f.name] ?? "").trim();
       value.items[id] = o;
     }
-    await attempt(save.mutateAsync({ key: "institutions", value }), "প্রতিষ্ঠানের তথ্য সংরক্ষিত হয়েছে");
+    await attempt(save.mutateAsync({ key: "institutions", lang, value }), "প্রতিষ্ঠানের তথ্য সংরক্ষিত হয়েছে");
   };
   const onReset = async () => {
     if (await confirm({ title: "প্রতিষ্ঠানের তথ্য আগের অবস্থায় ফেরাবেন?", description: "আপনার করা সব পরিবর্তন মুছে যাবে।", confirmLabel: "ফেরান", destructive: true })) {
-      await attempt(reset.mutateAsync("institutions"), "আগের তথ্য ফিরে এসেছে");
+      await attempt(reset.mutateAsync({ key: "institutions", lang }), "আগের তথ্য ফিরে এসেছে");
     }
   };
 
@@ -337,10 +353,10 @@ function InstitutionsEditor({ items, isCustomised }: { items: SiteSettings["inst
               <div className="mb-4 flex items-center gap-3">
                 <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-lg border bg-white p-1.5"><img src={base.logo} alt="" className="max-h-full w-auto object-contain" /></div>
                 <h3 className="min-w-0 flex-1 truncate font-display text-lg font-semibold">{base.nameBn}</h3>
-                <label className="flex items-center gap-2 text-sm"><Switch checked={vals.hidden !== true} onCheckedChange={(on) => set(base.id, "hidden", !on)} aria-label={`${base.nameBn} দেখান`} /> <span className="hidden sm:inline">ওয়েবসাইটে দেখান</span></label>
+                {!en && <label className="flex items-center gap-2 text-sm"><Switch checked={vals.hidden !== true} onCheckedChange={(on) => set(base.id, "hidden", !on)} aria-label={`${base.nameBn} দেখান`} /> <span className="hidden sm:inline">ওয়েবসাইটে দেখান</span></label>}
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                {INSTITUTION_FIELDS.map((f) => (
+                {fieldDefs.map((f) => (
                   <Field key={f.name} label={f.label} error={errors[`${base.id}.${f.name}`]} className={f.wide ? "sm:col-span-2" : undefined}>
                     {f.kind === "textarea"
                       ? <Textarea rows={2} maxLength={300} value={String(vals[f.name] ?? "")} onChange={(e) => set(base.id, f.name, e.target.value)} />
@@ -369,10 +385,12 @@ const TABS = [
 ] as const;
 
 export default function SiteSettingsSection() {
-  const { settings } = useSiteSettings();
+  const [lang, setLang] = useState<Lang>("bn");
+  const { settings } = useSiteSettings(lang);
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("general");
   // a group counts as customised when it differs from the built-in text
-  const customised = (key: SettingsKey) => JSON.stringify(settings[key]) !== JSON.stringify(DEFAULT_SETTINGS[key]);
+  const defaults = lang === "en" ? DEFAULT_SETTINGS_EN : DEFAULT_SETTINGS;
+  const customised = (key: SettingsKey) => JSON.stringify(settings[key]) !== JSON.stringify(defaults[key]);
 
   return (
     <div>
@@ -381,10 +399,21 @@ export default function SiteSettingsSection() {
         description="ওয়েবসাইটের লেখা, যোগাযোগের তথ্য, মেনু ও ফুটার এখান থেকেই বদলান — সংরক্ষণ করার সাথে সাথে সাইটে দেখা যাবে।"
         actions={<Button asChild variant="outline" className="gap-2"><a href="/" target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /> সাইট দেখুন</a></Button>}
       />
-      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3">
+        <span className="text-sm font-medium">কোন ভাষার লেখা বদলাচ্ছেন?</span>
+        <div className="inline-flex rounded-lg bg-muted p-1" role="group" aria-label="সম্পাদনার ভাষা">
+          {([["bn", "বাংলা"], ["en", "English"]] as const).map(([value, label]) => (
+            <button key={value} type="button" aria-pressed={lang === value} onClick={() => setLang(value)}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${lang === value ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{label}</button>
+          ))}
+        </div>
+        {lang === "en" && <p className="basis-full text-xs text-muted-foreground sm:basis-auto">ইমেইল, ফোন, লিংক, সোশ্যাল মিডিয়া, মেনু লুকানো ও চালু/বন্ধ সুইচ দুই ভাষায় এক — সেগুলো “বাংলা” অংশ থেকে বদলান। ইংরেজিতে কিছু না লিখলে সাইটের ডিফল্ট ইংরেজি লেখা দেখাবে।</p>}
+      </div>
+      <EditLang.Provider value={lang}>
+      <Tabs key={lang} value={tab === "social" && lang === "en" ? "general" : tab} onValueChange={(v) => setTab(v as typeof tab)}>
         <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
           <TabsList className="h-auto w-max justify-start gap-1 p-1">
-            {TABS.map((t) => <TabsTrigger key={t.id} value={t.id} className="whitespace-nowrap">{t.label}</TabsTrigger>)}
+            {TABS.filter((t) => lang === "bn" || t.id !== "social").map((t) => <TabsTrigger key={t.id} value={t.id} className="whitespace-nowrap">{t.label}</TabsTrigger>)}
           </TabsList>
         </div>
         <TabsContent value="general" className="mt-4">
@@ -399,6 +428,7 @@ export default function SiteSettingsSection() {
         <TabsContent value="nav" className="mt-4"><NavEditor nav={settings.nav} isCustomised={customised("nav")} /></TabsContent>
         <TabsContent value="footer" className="mt-4"><GroupForm groupKey="footer" fields={FOOTER} current={settings.footer as unknown as Values} base={settings.footer} isCustomised={customised("footer")} /></TabsContent>
       </Tabs>
+      </EditLang.Provider>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { useLang } from "@/lib/i18n";
 
 interface AlumniProfile {
   full_name: string | null;
@@ -22,7 +23,8 @@ interface AlumniProfile {
 }
 
 export default function Alumni() {
-  usePageMeta("প্রাক্তন ছাত্র", "ব্যাচ অনুযায়ী অনুমোদিত প্রাক্তন ছাত্রদের প্রোফাইল।");
+  const { t } = useLang();
+  usePageMeta(t("প্রাক্তন ছাত্র", "Alumni"), t("ব্যাচ অনুযায়ী অনুমোদিত প্রাক্তন ছাত্রদের প্রোফাইল।", "Profiles of approved alumni, grouped by batch."));
   const [alumni, setAlumni] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,24 +50,24 @@ export default function Alumni() {
 
   return (
     <div>
-      <PageHero badge="আমাদের প্রাক্তন ছাত্র" title="প্রাক্তন ছাত্র তালিকা" subtitle="ব্যাচ অনুযায়ী আমাদের অনুমোদিত প্রাক্তন ছাত্রদের প্রোফাইল দেখুন।" />
+      <PageHero badge={t("আমাদের প্রাক্তন ছাত্র", "Our Alumni")} title={t("প্রাক্তন ছাত্র তালিকা", "Alumni List")} subtitle={t("ব্যাচ অনুযায়ী আমাদের অনুমোদিত প্রাক্তন ছাত্রদের প্রোফাইল দেখুন।", "Browse the profiles of our approved alumni, grouped by batch.")} />
 
       <section className="py-16">
         <div className="container">
           {loading ? (
-            <div className="text-center py-20 text-muted-foreground animate-pulse font-display text-xl">লোড হচ্ছে...</div>
+            <div className="text-center py-20 text-muted-foreground animate-pulse font-display text-xl">{t("লোড হচ্ছে...", "Loading...")}</div>
           ) : alumni.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
               <Users className="h-16 w-16 mx-auto mb-4 opacity-30" />
-              <p className="text-lg">এখনো কোনো অনুমোদিত প্রাক্তন ছাত্র নেই।</p>
+              <p className="text-lg">{t("এখনো কোনো অনুমোদিত প্রাক্তন ছাত্র নেই।", "No approved alumni yet.")}</p>
             </div>
           ) : (
             batches.map((batch) => (
               <div key={batch} className="mb-12">
                 <div className="flex items-center gap-3 mb-6">
                   <GraduationCap className="h-6 w-6 text-primary" />
-                  <h2 className="font-display text-2xl font-bold">ব্যাচ {batch}</h2>
-                  <Badge variant="secondary">{alumni.filter((a) => a.batch_year === batch).length} সদস্য</Badge>
+                  <h2 className="font-display text-2xl font-bold">{t(`ব্যাচ ${batch}`, `Batch ${batch}`)}</h2>
+                  <Badge variant="secondary">{t(`${alumni.filter((a) => a.batch_year === batch).length} সদস্য`, `${alumni.filter((a) => a.batch_year === batch).length} members`)}</Badge>
                 </div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {alumni
@@ -88,8 +90,8 @@ export default function Alumni() {
                                 </AvatarFallback>
                               </Avatar>
                               <div className="min-w-0 flex-1">
-                                <h3 className="font-semibold truncate">{a.full_name || "নাম নেই"}</h3>
-                                <p className="text-sm text-muted-foreground">রোল: {a.roll || "—"}</p>
+                                <h3 className="font-semibold truncate">{a.full_name || t("নাম নেই", "No name")}</h3>
+                                <p className="text-sm text-muted-foreground">{t("রোল", "Roll")}: {a.roll || "—"}</p>
                                 {a.current_profession && (
                                   <p className="text-sm text-primary font-medium truncate">{a.current_profession}</p>
                                 )}
@@ -103,12 +105,12 @@ export default function Alumni() {
                             )}
                             <div className="flex gap-2">
                               {safeHttpsUrl(a.linkedin_link) && (
-                                <a href={safeHttpsUrl(a.linkedin_link) ?? undefined} aria-label={`${a.full_name ?? "প্রাক্তন ছাত্র"} — LinkedIn`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                                <a href={safeHttpsUrl(a.linkedin_link) ?? undefined} aria-label={`${a.full_name ?? t("প্রাক্তন ছাত্র", "Alumnus")} — LinkedIn`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                                   <Linkedin className="h-4 w-4" />
                                 </a>
                               )}
                               {safeHttpsUrl(a.facebook_link) && (
-                                <a href={safeHttpsUrl(a.facebook_link) ?? undefined} aria-label={`${a.full_name ?? "প্রাক্তন ছাত্র"} — Facebook`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                                <a href={safeHttpsUrl(a.facebook_link) ?? undefined} aria-label={`${a.full_name ?? t("প্রাক্তন ছাত্র", "Alumnus")} — Facebook`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                                   <Facebook className="h-4 w-4" />
                                 </a>
                               )}

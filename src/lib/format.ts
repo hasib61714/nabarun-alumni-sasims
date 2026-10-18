@@ -1,19 +1,21 @@
 import { formatDistanceToNow } from "date-fns";
-import { bn } from "date-fns/locale";
+import { bn, enUS } from "date-fns/locale";
+import { localeOf, type Lang } from "./i18n";
 
-export const formatDate = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleDateString("bn-BD", { year: "numeric", month: "long", day: "numeric" }) : "";
+// Every formatter takes an optional language; the dashboards are Bengali only and use the default.
+export const formatDate = (iso: string | null | undefined, lang: Lang = "bn") =>
+  iso ? new Date(iso).toLocaleDateString(localeOf(lang), { year: "numeric", month: "long", day: "numeric" }) : "";
 
-export const formatDateTime = (iso: string | null | undefined) =>
+export const formatDateTime = (iso: string | null | undefined, lang: Lang = "bn") =>
   iso
-    ? new Date(iso).toLocaleString("bn-BD", { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+    ? new Date(iso).toLocaleString(localeOf(lang), { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
     : "";
 
-export const timeAgo = (iso: string | null | undefined) =>
-  iso ? formatDistanceToNow(new Date(iso), { addSuffix: true, locale: bn }) : "";
+export const timeAgo = (iso: string | null | undefined, lang: Lang = "bn") =>
+  iso ? formatDistanceToNow(new Date(iso), { addSuffix: true, locale: lang === "en" ? enUS : bn }) : "";
 
-export const formatNumber = (n: number) => n.toLocaleString("bn-BD");
-export const formatTaka = (n: number) => `৳${n.toLocaleString("bn-BD")}`;
+export const formatNumber = (n: number, lang: Lang = "bn") => n.toLocaleString(localeOf(lang));
+export const formatTaka = (n: number, lang: Lang = "bn") => `৳${n.toLocaleString(localeOf(lang))}`;
 
 export const initialsOf = (name: string | null | undefined, fallback = "?") =>
   (name || "").trim().split(/\s+/).filter(Boolean).map((p) => p[0]).join("").slice(0, 2).toUpperCase() || fallback;

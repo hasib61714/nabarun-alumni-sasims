@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { BookHeart, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { safeMediaUrl, type MemoryMedia } from "@/lib/memories";
 import { parseYouTube, youtubeEmbedUrl, youtubeThumbnailUrl } from "@/lib/video";
@@ -47,6 +48,7 @@ export function MediaThumb({ media, alt, className }: { media: MemoryMedia | nul
 
 /** Swipeable viewer for all photos and videos of a memory. Photos open in a lightbox. */
 export function MediaCarousel({ media, title }: { media: MemoryMedia[]; title: string }) {
+  const { t } = useLang();
   const [api, setApi] = useState<CarouselApi>();
   const [index, setIndex] = useState(0);
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -79,8 +81,8 @@ export function MediaCarousel({ media, title }: { media: MemoryMedia[]; title: s
               <CarouselItem key={`${m.url}-${i}`} className="pl-0">
                 <div className="aspect-video w-full bg-black">
                   {m.type === "image" && url && (
-                    <button type="button" onClick={() => setLightbox(url)} className="h-full w-full cursor-zoom-in" aria-label="ছবি বড় করে দেখুন">
-                      <img src={url} alt={`${title} — ছবি ${i + 1}`} loading={i === 0 ? "eager" : "lazy"} decoding="async" className="h-full w-full object-contain" />
+                    <button type="button" onClick={() => setLightbox(url)} className="h-full w-full cursor-zoom-in" aria-label={t("ছবি বড় করে দেখুন", "View photo larger")}>
+                      <img src={url} alt={`${title} — ${t("ছবি", "Photo")} ${i + 1}`} loading={i === 0 ? "eager" : "lazy"} decoding="async" className="h-full w-full object-contain" />
                     </button>
                   )}
                   {m.type === "video" && url && (
@@ -89,7 +91,7 @@ export function MediaCarousel({ media, title }: { media: MemoryMedia[]; title: s
                   {youtubeId && (
                     <iframe
                       src={`${youtubeEmbedUrl(youtubeId)}&enablejsapi=1`}
-                      title={`${title} — ভিডিও`}
+                      title={`${title} — ${t("ভিডিও", "Video")}`}
                       loading="lazy"
                       allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
@@ -107,13 +109,13 @@ export function MediaCarousel({ media, title }: { media: MemoryMedia[]; title: s
       {media.length > 1 && (
         <>
           <button
-            type="button" onClick={() => api?.scrollPrev()} aria-label="আগের"
+            type="button" onClick={() => api?.scrollPrev()} aria-label={t("আগের", "Previous")}
             className="absolute left-2 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70 sm:flex"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
-            type="button" onClick={() => api?.scrollNext()} aria-label="পরের"
+            type="button" onClick={() => api?.scrollNext()} aria-label={t("পরের", "Next")}
             className="absolute right-2 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70 sm:flex"
           >
             <ChevronRight className="h-5 w-5" />

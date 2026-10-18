@@ -12,8 +12,10 @@ import nabarunLogo from "@/assets/nabarun-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useLang } from "@/lib/i18n";
 import { applyNavSettings, isGroup, isPathActive, type NavLinkDef } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
+import LanguageToggle from "./LanguageToggle";
 import ThemeToggle from "./ThemeToggle";
 
 const itemBase =
@@ -49,11 +51,12 @@ function MenuCard({ link, active }: { link: NavLinkDef; active: boolean }) {
 export default function Header() {
   const { pathname } = useLocation();
   const { settings } = useSiteSettings();
+  const { t, lang } = useLang();
   const { user } = useAuthUser();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const nav = useMemo(() => applyNavSettings(settings.nav), [settings.nav]);
-  const { siteName, siteNameEn } = settings.general;
+  const nav = useMemo(() => applyNavSettings(settings.nav, lang), [settings.nav, lang]);
+  const { siteName } = settings.general;
 
   const { scrollYProgress } = useScroll();
   const progress = useSpring(scrollYProgress, { stiffness: 140, damping: 30, restDelta: 0.001 });
@@ -71,15 +74,12 @@ export default function Header() {
   return (
     <header className={cn("sticky top-0 z-50 glass-header transition-shadow", scrolled ? "border-b shadow-sm" : "border-b border-transparent")}>
       <div className="container flex h-16 items-center justify-between gap-4">
-        <Link to="/" className="flex shrink-0 items-center gap-2.5" aria-label={`${siteName} — হোম`}>
-          <img src={nabarunLogo} alt="" className="h-10 w-auto" />
-          <span className="hidden leading-tight sm:block">
-            <span className="block font-display text-base font-bold text-primary">{siteNameEn || siteName}</span>
-            <span className="block text-[11px] text-muted-foreground">{settings.general.tagline}</span>
-          </span>
+        <Link to="/" className="flex shrink-0 items-center gap-2" aria-label={`${siteName} — ${t("হোম", "Home")}`}>
+          <img src={nabarunLogo} alt="" className="h-8 w-auto sm:h-9" />
+          <span className="hidden rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-primary md:block">Alumni</span>
         </Link>
 
-        <NavigationMenu className="hidden lg:flex" aria-label="প্রধান মেনু">
+        <NavigationMenu className="hidden lg:flex" aria-label={t("প্রধান মেনু", "Main menu")}>
           <NavigationMenuList className="gap-0.5">
             {nav.map((entry) =>
               isGroup(entry) ? (
@@ -113,26 +113,27 @@ export default function Header() {
         </NavigationMenu>
 
         <div className="flex items-center gap-1.5">
+          <LanguageToggle className="hidden sm:inline-flex" />
           <ThemeToggle className="relative" />
           <div className="hidden items-center gap-1.5 lg:flex">
             {user ? (
               <>
                 <Button asChild className="rounded-full px-5 shadow-md shadow-primary/25">
-                  <Link to="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> ড্যাশবোর্ড</Link>
+                  <Link to="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> {t("ড্যাশবোর্ড", "Dashboard")}</Link>
                 </Button>
-                <Button variant="ghost" size="icon" onClick={signOut} aria-label="লগআউট" title="লগআউট"><LogOut className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={signOut} aria-label={t("লগআউট", "Log out")} title={t("লগআউট", "Log out")}><LogOut className="h-4 w-4" /></Button>
               </>
             ) : (
               <>
-                <Button variant="ghost" asChild className="rounded-full"><Link to="/login">সাইন ইন</Link></Button>
-                <Button asChild className="rounded-full px-5 shadow-md shadow-primary/25"><Link to="/register">যোগ দিন</Link></Button>
+                <Button variant="ghost" asChild className="rounded-full"><Link to="/login">{t("সাইন ইন", "Sign in")}</Link></Button>
+                <Button asChild className="rounded-full px-5 shadow-md shadow-primary/25"><Link to="/register">{t("যোগ দিন", "Join us")}</Link></Button>
               </>
             )}
           </div>
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="মেনু খুলুন"><Menu className="h-6 w-6" /></Button>
+              <Button variant="ghost" size="icon" className="lg:hidden" aria-label={t("মেনু খুলুন", "Open menu")}><Menu className="h-6 w-6" /></Button>
             </SheetTrigger>
             <SheetContent side="right" className="flex w-[88vw] max-w-sm flex-col gap-0 p-0">
               <SheetHeader className="border-b p-5 text-left">
@@ -141,7 +142,7 @@ export default function Header() {
                 </SheetTitle>
                 <SheetDescription>{settings.general.tagline}</SheetDescription>
               </SheetHeader>
-              <nav className="flex-1 overflow-y-auto p-3" aria-label="মোবাইল মেনু">
+              <nav className="flex-1 overflow-y-auto p-3" aria-label={t("মোবাইল মেনু", "Mobile menu")}>
                 <Accordion type="multiple" className="w-full">
                   {nav.map((entry) =>
                     isGroup(entry) ? (
@@ -174,15 +175,16 @@ export default function Header() {
                 </Accordion>
               </nav>
               <div className="space-y-2 border-t p-4">
+                <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">{t("ভাষা", "Language")}</span><LanguageToggle /></div>
                 {user ? (
                   <>
-                    <SheetClose asChild><Button asChild className="w-full rounded-full"><Link to="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> ড্যাশবোর্ড</Link></Button></SheetClose>
-                    <Button variant="outline" className="w-full rounded-full" onClick={signOut}><LogOut className="mr-2 h-4 w-4" /> লগআউট</Button>
+                    <SheetClose asChild><Button asChild className="w-full rounded-full"><Link to="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> {t("ড্যাশবোর্ড", "Dashboard")}</Link></Button></SheetClose>
+                    <Button variant="outline" className="w-full rounded-full" onClick={signOut}><LogOut className="mr-2 h-4 w-4" /> {t("লগআউট", "Log out")}</Button>
                   </>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
-                    <SheetClose asChild><Button variant="outline" asChild className="rounded-full"><Link to="/login"><LogIn className="mr-2 h-4 w-4" /> সাইন ইন</Link></Button></SheetClose>
-                    <SheetClose asChild><Button asChild className="rounded-full"><Link to="/register"><UserPlus className="mr-2 h-4 w-4" /> যোগ দিন</Link></Button></SheetClose>
+                    <SheetClose asChild><Button variant="outline" asChild className="rounded-full"><Link to="/login"><LogIn className="mr-2 h-4 w-4" /> {t("সাইন ইন", "Sign in")}</Link></Button></SheetClose>
+                    <SheetClose asChild><Button asChild className="rounded-full"><Link to="/register"><UserPlus className="mr-2 h-4 w-4" /> {t("যোগ দিন", "Join us")}</Link></Button></SheetClose>
                   </div>
                 )}
               </div>

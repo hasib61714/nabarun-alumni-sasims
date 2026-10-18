@@ -4,7 +4,8 @@ import { Images, Star, Video } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { excerpt, initialsOf, timeAgo } from "@/lib/format";
-import { coverOf, type Memory } from "@/lib/memories";
+import { useLang } from "@/lib/i18n";
+import { categoryLabel, coverOf, type Memory } from "@/lib/memories";
 import { MediaThumb } from "./MemoryMedia";
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function MemoryCard({ memory, to, index = 0 }: Props) {
+  const { t, lang } = useLang();
   const cover = coverOf(memory);
   const photos = memory.media.filter((m) => m.type === "image").length;
   const hasVideo = memory.media.some((m) => m.type !== "image");
@@ -32,16 +34,16 @@ export function MemoryCard({ memory, to, index = 0 }: Props) {
       >
         <div className="relative">
           <MediaThumb media={cover} alt={memory.title} className="aspect-[4/3] w-full" />
-          <Badge className="absolute left-3 top-3 border-0 bg-black/55 text-white backdrop-blur-sm hover:bg-black/55">{memory.category}</Badge>
+          <Badge className="absolute left-3 top-3 border-0 bg-black/55 text-white backdrop-blur-sm hover:bg-black/55">{categoryLabel(memory.category, lang)}</Badge>
           {memory.is_featured && (
             <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-amber-400 px-2 py-0.5 text-xs font-semibold text-amber-950 shadow">
-              <Star className="h-3 w-3 fill-current" /> বিশেষ
+              <Star className="h-3 w-3 fill-current" /> {t("বিশেষ", "Featured")}
             </span>
           )}
           {(photos > 1 || hasVideo) && (
             <div className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-black/55 px-2.5 py-1 text-xs text-white backdrop-blur-sm">
               {photos > 1 && <span className="inline-flex items-center gap-1"><Images className="h-3.5 w-3.5" />{photos}</span>}
-              {hasVideo && <Video className="h-3.5 w-3.5" aria-label="ভিডিও আছে" />}
+              {hasVideo && <Video className="h-3.5 w-3.5" aria-label={t("ভিডিও আছে", "Has video")} />}
             </div>
           )}
         </div>
@@ -55,7 +57,7 @@ export function MemoryCard({ memory, to, index = 0 }: Props) {
             <div className="min-w-0 text-xs">
               <p className="truncate font-medium text-foreground">{memory.author_name}</p>
               <p className="truncate text-muted-foreground">
-                {memory.batch_year ? `ব্যাচ ${memory.batch_year} · ` : ""}{timeAgo(memory.approved_at ?? memory.created_at)}
+                {memory.batch_year ? `${t("ব্যাচ", "Batch")} ${memory.batch_year} · ` : ""}{timeAgo(memory.approved_at ?? memory.created_at, lang)}
               </p>
             </div>
           </div>

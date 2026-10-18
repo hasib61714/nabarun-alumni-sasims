@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
+import { useLang } from "@/lib/i18n";
 
 interface AlumniProfile {
   full_name: string | null;
@@ -22,7 +23,8 @@ interface AlumniProfile {
 }
 
 export default function SearchAlumni() {
-  usePageMeta("অনুসন্ধান", "নাম, রোল, পেশা বা ব্যাচ দিয়ে প্রাক্তন ছাত্র খুঁজুন।");
+  const { t } = useLang();
+  usePageMeta(t("অনুসন্ধান", "Search"), t("নাম, রোল, পেশা বা ব্যাচ দিয়ে প্রাক্তন ছাত্র খুঁজুন।", "Find alumni by name, roll, profession or batch."));
   const [alumni, setAlumni] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -60,40 +62,40 @@ export default function SearchAlumni() {
 
   return (
     <div>
-      <PageHero badge="অনুসন্ধান" title="প্রাক্তন ছাত্র খুঁজুন" subtitle="নাম, রোল, পেশা বা ব্যাচ দিয়ে অনুসন্ধান করুন।" />
+      <PageHero badge={t("অনুসন্ধান", "Search")} title={t("প্রাক্তন ছাত্র খুঁজুন", "Find Alumni")} subtitle={t("নাম, রোল, পেশা বা ব্যাচ দিয়ে অনুসন্ধান করুন।", "Search by name, roll, profession or batch.")} />
 
       <section className="py-12">
         <div className="container max-w-4xl">
           <div className="flex flex-col sm:flex-row gap-3 mb-8">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="নাম, রোল বা পেশা দিয়ে খুঁজুন..." value={query} onChange={(e) => setQuery(e.target.value)} className="pl-10" />
+              <Input placeholder={t("নাম, রোল বা পেশা দিয়ে খুঁজুন...", "Search by name, roll or profession...")} value={query} onChange={(e) => setQuery(e.target.value)} className="pl-10" />
             </div>
             <Select value={batchFilter} onValueChange={setBatchFilter}>
               <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="ব্যাচ বছর" />
+                <SelectValue placeholder={t("ব্যাচ বছর", "Batch year")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">সকল ব্যাচ</SelectItem>
-                {batches.map((b) => <SelectItem key={b} value={b!.toString()}>ব্যাচ {b}</SelectItem>)}
+                <SelectItem value="all">{t("সকল ব্যাচ", "All batches")}</SelectItem>
+                {batches.map((b) => <SelectItem key={b} value={b!.toString()}>{t(`ব্যাচ ${b}`, `Batch ${b}`)}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={professionFilter} onValueChange={setProfessionFilter}>
               <SelectTrigger className="w-full sm:w-44">
-                <SelectValue placeholder="পেশা" />
+                <SelectValue placeholder={t("পেশা", "Profession")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">সকল পেশা</SelectItem>
+                <SelectItem value="all">{t("সকল পেশা", "All professions")}</SelectItem>
                 {professions.map((p) => <SelectItem key={p} value={p!}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
 
           {loading ? (
-            <div className="text-center py-12 text-muted-foreground animate-pulse">লোড হচ্ছে...</div>
+            <div className="text-center py-12 text-muted-foreground animate-pulse">{t("লোড হচ্ছে...", "Loading...")}</div>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground mb-4">{filtered.length} টি ফলাফল পাওয়া গেছে</p>
+              <p className="text-sm text-muted-foreground mb-4">{t(`${filtered.length} টি ফলাফল পাওয়া গেছে`, filtered.length === 1 ? "1 result found" : `${filtered.length} results found`)}</p>
               <div className="space-y-3">
                 {filtered.map((a, i) => (
                   <motion.div key={`${a.roll}-${i}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
@@ -104,17 +106,17 @@ export default function SearchAlumni() {
                           <AvatarFallback className="bg-primary/10 text-primary font-semibold">{getInitials(a.full_name)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold">{a.full_name || "নাম নেই"}</h3>
-                          <p className="text-sm text-muted-foreground">রোল: {a.roll || "—"} · ব্যাচ: {a.batch_year || "—"}</p>
+                          <h3 className="font-semibold">{a.full_name || t("নাম নেই", "No name")}</h3>
+                          <p className="text-sm text-muted-foreground">{t("রোল", "Roll")}: {a.roll || "—"} · {t("ব্যাচ", "Batch")}: {a.batch_year || "—"}</p>
                           {a.higher_study && <p className="text-xs text-muted-foreground">🎓 {a.higher_study}</p>}
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="text-sm font-medium text-primary hidden sm:block">{a.current_profession || "—"}</span>
                           {safeHttpsUrl(a.linkedin_link) && (
-                            <a href={safeHttpsUrl(a.linkedin_link) ?? undefined} aria-label={`${a.full_name ?? "প্রাক্তন ছাত্র"} — LinkedIn`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Linkedin className="h-4 w-4" /></a>
+                            <a href={safeHttpsUrl(a.linkedin_link) ?? undefined} aria-label={`${a.full_name ?? t("প্রাক্তন ছাত্র", "Alumnus")} — LinkedIn`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Linkedin className="h-4 w-4" /></a>
                           )}
                           {safeHttpsUrl(a.facebook_link) && (
-                            <a href={safeHttpsUrl(a.facebook_link) ?? undefined} aria-label={`${a.full_name ?? "প্রাক্তন ছাত্র"} — Facebook`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Facebook className="h-4 w-4" /></a>
+                            <a href={safeHttpsUrl(a.facebook_link) ?? undefined} aria-label={`${a.full_name ?? t("প্রাক্তন ছাত্র", "Alumnus")} — Facebook`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Facebook className="h-4 w-4" /></a>
                           )}
                         </div>
                       </CardContent>
@@ -124,7 +126,7 @@ export default function SearchAlumni() {
                 {filtered.length === 0 && (
                   <div className="text-center py-12 text-muted-foreground">
                     <Users className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                    <p>আপনার অনুসন্ধানে কোনো প্রাক্তন ছাত্র পাওয়া যায়নি।</p>
+                    <p>{t("আপনার অনুসন্ধানে কোনো প্রাক্তন ছাত্র পাওয়া যায়নি।", "No alumni matched your search.")}</p>
                   </div>
                 )}
               </div>

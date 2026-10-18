@@ -1,3 +1,5 @@
+import type { Lang } from "./i18n";
+
 // Editable site content. Every group is stored as one JSON document in the
 // `site_settings` table. Anything an admin has not changed falls back to the
 // defaults below, so a fresh database (or a missing table) still renders a full site.
@@ -183,6 +185,81 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   institutions: { items: {} },
 };
 
+export const DEFAULT_SETTINGS_EN: SiteSettings = {
+  general: {
+    ...DEFAULT_SETTINGS.general,
+    siteName: "Nabarun Alumni",
+    siteNameEn: "Nabarun Alumni",
+    tagline: "Nabarun Education Family",
+    address: "Sherpur, Bangladesh",
+  },
+  social: DEFAULT_SETTINGS.social,
+  home: {
+    ...DEFAULT_SETTINGS.home,
+    heroBadge: "Nabarun Education Family",
+    heroTitle: "Connecting students, preserving our heritage",
+    heroSubtitle:
+      "The student information system and alumni network of Nabarun Public School, Biplob Lopa Memorial Girls School and Nabarun Coaching Center.",
+    heroMotto: "We are Nabarun, We are Champion.",
+    primaryCtaLabel: "Join us",
+    secondaryCtaLabel: "View alumni",
+    institutionsTitle: "Nabarun Education Family",
+    institutionsSubtitle: "One education family built from three institutions.",
+    featuresTitle: "Everything in one place",
+    featuresSubtitle: "A modern home for alumni and student information, memories and connections.",
+    bannerText: "We are Nabarun, We are Champion.",
+    bannerSubtext: "Unity, discipline and excellence — that is who we are.",
+    ctaTitle: "Join today!",
+    ctaText: "Register and, once an admin has verified you, join the Nabarun alumni network.",
+    ctaButton: "Create an account",
+    features: [
+      { title: "Alumni network", desc: "Stay connected with graduates from every batch." },
+      { title: "Academic records", desc: "Keep SSC, HSC and other results safely in digital form." },
+      { title: "Achievements", desc: "Showcase awards, honours and career milestones." },
+      { title: "Batch statistics", desc: "A picture of alumni by year and profession." },
+      { title: "Smart search", desc: "Find alumni by name, roll, batch or profession." },
+      { title: "Verified and safe", desc: "Profiles are published only after an admin verifies them — no fake accounts." },
+    ],
+    steps: [
+      { title: "Register", desc: "Submit your application with name, batch, roll and contact details." },
+      { title: "An admin verifies", desc: "An admin checks your details and approves the account." },
+      { title: "Build your profile", desc: "Once approved, share your photo, achievements, profession and memories." },
+    ],
+  },
+  about: {
+    ...DEFAULT_SETTINGS.about,
+    heroTitle: "Nabarun Education Family",
+    heroSubtitle: "A commitment to excellence in education, successful alumni and the leaders of tomorrow.",
+    mission: "To preserve and celebrate the journey of every student of our institutions, digitally.",
+    vision: "To build the most connected and supportive alumni network, empowering current and future students.",
+    values: "Excellence, integrity, community and lifelong learning guide everything we do.",
+    systemTitle: "About this platform",
+    systemText:
+      "Nabarun Education Family includes Nabarun Public School, Biplob Lopa Memorial Girls School and Nabarun Coaching Center.\n\n" +
+      "This Smart Alumni and Student Information Management System (SASIMS) is a digital platform that bridges past and present students.\n\n" +
+      "After registration an admin verifies every application so that there are no fake accounts. Once approved, students can build their profile, write memories and stay connected with their alma mater.",
+  },
+  footer: {
+    ...DEFAULT_SETTINGS.footer,
+    about: "The digital home for the memories and information of Nabarun Education Family's alumni and students. Connecting generation to generation.",
+    copyright: "Nabarun Education Family. All rights reserved.",
+  },
+  nav: { labels: {}, hidden: [] },
+  institutions: { items: {} },
+};
+
+/** Fields that are the same in every language; the English version always takes them from the Bengali one. */
+export const NEUTRAL_FIELDS: Record<SettingsKey, string[]> = {
+  general: ["email", "phone", "phoneDisplay", "mapUrl", "website"],
+  social: ["facebook", "youtube", "instagram", "linkedin", "twitter", "whatsapp"],
+  home: ["primaryCtaLink", "secondaryCtaLink", "showNotices", "showEvents", "showTopAlumni", "showMemories", "showTestimonials"],
+  about: ["showDeveloper"],
+  footer: ["showDeveloperCredit"],
+  nav: ["hidden"],
+  institutions: [],
+};
+const NEUTRAL_INSTITUTION_FIELDS: (keyof InstitutionOverride)[] = ["established", "phoneDisplay", "email", "mapUrl", "hidden"];
+
 const isCardList = (value: unknown): value is { title: string; desc: string }[] =>
   Array.isArray(value) && value.every((c) => c && typeof c === "object" && typeof (c as CardText).title === "string" && typeof (c as CardText).desc === "string");
 
@@ -200,14 +277,37 @@ function mergeGroup<T extends object>(defaults: T, stored: unknown): T {
   return out as T;
 }
 
-/** `rows` is the raw content of the site_settings table. */
-export function buildSettings(rows: { key: string; value: unknown }[] | null | undefined): SiteSettings {
+function buildGroups(rows: { key: string; value: unknown }[] | null | undefined, lang: Lang): SiteSettings {
   const byKey = new Map((rows ?? []).map((r) => [r.key, r.value]));
-  const next = { ...DEFAULT_SETTINGS } as Record<SettingsKey, unknown>;
+  const defaults = lang === "en" ? DEFAULT_SETTINGS_EN : DEFAULT_SETTINGS;
+  const next = {} as Record<SettingsKey, unknown>;
   for (const key of SETTINGS_KEYS) {
-    next[key] = mergeGroup(DEFAULT_SETTINGS[key] as object, byKey.get(key));
+    next[key] = mergeGroup(defaults[key] as object, byKey.get(lang === "en" ? `${key}_en` : key));
   }
   return next as unknown as SiteSettings;
+}
+
+/** `rows` is the raw content of the site_settings table; English text lives in `<group>_en` rows. */
+export function buildSettings(rows: { key: string; value: unknown }[] | null | undefined, lang: Lang = "bn"): SiteSettings {
+  const bn = buildGroups(rows, "bn");
+  if (lang === "bn") return bn;
+  const en = buildGroups(rows, "en");
+  for (const key of SETTINGS_KEYS) {
+    for (const field of NEUTRAL_FIELDS[key]) (en[key] as unknown as Record<string, unknown>)[field] = (bn[key] as unknown as Record<string, unknown>)[field];
+  }
+  // institutions: contact details and visibility are shared, the written text is English-only
+  const items: Record<string, InstitutionOverride> = {};
+  for (const id of new Set([...Object.keys(bn.institutions.items), ...Object.keys(en.institutions.items)])) {
+    const shared: InstitutionOverride = {};
+    for (const f of NEUTRAL_INSTITUTION_FIELDS) {
+      const v = bn.institutions.items[id]?.[f];
+      if (v !== undefined) (shared as Record<string, unknown>)[f] = v;
+    }
+    const { name, desc, address } = en.institutions.items[id] ?? {};
+    items[id] = { ...shared, ...(name !== undefined && { name }), ...(desc !== undefined && { desc }), ...(address !== undefined && { address }) };
+  }
+  en.institutions = { items };
+  return en;
 }
 
 /** Only links that are safe to put in an href; anything else becomes "". */

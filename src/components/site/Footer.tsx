@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowUp, Clock, Facebook, Globe, Instagram, Linkedin, Mail, MapPin, MessageCircle, Phone, Twitter, Youtube, type LucideIcon } from "lucide-react";
 import nabarunLogo from "@/assets/nabarun-logo.png";
 import { useInstitutions, useSiteSettings } from "@/hooks/useSiteSettings";
+import { useLang } from "@/lib/i18n";
 import { applyNavSettings, isGroup, type NavLinkDef } from "@/lib/navigation";
 import { isExternal, safeHref, telHref } from "@/lib/siteSettings";
 
@@ -18,10 +19,11 @@ const socials: { key: keyof ReturnType<typeof useSiteSettings>["settings"]["soci
 export default function Footer() {
   const { settings } = useSiteSettings();
   const institutions = useInstitutions();
+  const { t, lang } = useLang();
   const { general, footer } = settings;
   const links = useMemo<NavLinkDef[]>(
-    () => applyNavSettings(settings.nav).flatMap((e) => (isGroup(e) ? e.items : [e])),
-    [settings.nav],
+    () => applyNavSettings(settings.nav, lang).flatMap((e) => (isGroup(e) ? e.items : [e])),
+    [settings.nav, lang],
   );
   const socialLinks = socials.map((s) => ({ ...s, href: safeHref(settings.social[s.key]) })).filter((s) => s.href);
   const website = safeHref(general.website);
@@ -34,9 +36,8 @@ export default function Footer() {
       <div className="container relative py-14">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <Link to="/" className="mb-4 inline-flex items-center gap-2.5">
-              <img src={nabarunLogo} alt="" className="h-11 w-auto" />
-              <span className="font-display text-lg font-bold text-primary">{general.siteNameEn || general.siteName}</span>
+            <Link to="/" className="mb-4 inline-block" aria-label={general.siteName}>
+              <img src={nabarunLogo} alt="" className="h-9 w-auto" />
             </Link>
             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">{footer.about}</p>
             {socialLinks.length > 0 && (
@@ -58,8 +59,8 @@ export default function Footer() {
             )}
           </div>
 
-          <nav className="lg:col-span-3" aria-label="দ্রুত লিংক">
-            <h2 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">দ্রুত লিংক</h2>
+          <nav className="lg:col-span-3" aria-label={t("দ্রুত লিংক", "Quick links")}>
+            <h2 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">{t("দ্রুত লিংক", "Quick links")}</h2>
             <ul className="grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-1 lg:grid-cols-2">
               {links.map((l) => (
                 <li key={l.id}>
@@ -70,18 +71,18 @@ export default function Footer() {
           </nav>
 
           <div className="lg:col-span-2">
-            <h2 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">আমাদের প্রতিষ্ঠান</h2>
+            <h2 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">{t("আমাদের প্রতিষ্ঠান", "Our institutions")}</h2>
             <ul className="space-y-2.5">
               {institutions.map((i) => (
                 <li key={i.id}>
-                  <Link to="/about#institutions" className="text-sm text-muted-foreground transition-colors hover:text-primary">{i.nameBn}</Link>
+                  <Link to="/about#institutions" className="text-sm text-muted-foreground transition-colors hover:text-primary">{i.title}</Link>
                 </li>
               ))}
             </ul>
           </div>
 
           <div className="lg:col-span-3">
-            <h2 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">যোগাযোগ</h2>
+            <h2 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">{t("যোগাযোগ", "Contact")}</h2>
             <ul className="space-y-3 text-sm text-muted-foreground">
               {general.address && (
                 <li className="flex gap-2.5">
@@ -120,7 +121,7 @@ export default function Footer() {
           <div className="text-center sm:text-left">
             <p>© {new Date().getFullYear()} {footer.copyright}</p>
             {footer.showDeveloperCredit && (
-              <p className="mt-1 text-xs">Developed with ❤️ by <Link to="/about#developer" className="font-medium hover:text-primary">Md. Hasibul Hasan</Link></p>
+              <p className="mt-1 text-xs">{t("তৈরি করেছেন", "Developed with ❤️ by")} <Link to="/about#developer" className="font-medium hover:text-primary">Md. Hasibul Hasan</Link></p>
             )}
           </div>
           <button
@@ -128,7 +129,7 @@ export default function Footer() {
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             className="inline-flex items-center gap-2 rounded-full border bg-background px-4 py-2 text-xs font-medium transition-colors hover:border-primary hover:text-primary"
           >
-            <ArrowUp className="h-3.5 w-3.5" /> উপরে যান
+            <ArrowUp className="h-3.5 w-3.5" /> {t("উপরে যান", "Back to top")}
           </button>
         </div>
       </div>
