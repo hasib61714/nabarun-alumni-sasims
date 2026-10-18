@@ -37,6 +37,24 @@ export const STATUS_LABEL: Record<MemoryStatus, string> = {
   rejected: "প্রত্যাখ্যাত",
 };
 
+const CATEGORY_EN: Record<string, string> = {
+  "স্কুলজীবন": "School life",
+  "বন্ধুত্ব": "Friendship",
+  "শিক্ষক": "Teachers",
+  "অনুষ্ঠান": "Events",
+  "খেলাধুলা": "Sports",
+  "ভ্রমণ": "Trips",
+  "অন্যান্য": "Other",
+};
+
+/** Display name of a category. The stored value stays Bengali; unknown values are shown as they are. */
+export const categoryLabel = (category: string, lang: "bn" | "en" = "bn") => (lang === "en" ? CATEGORY_EN[category] ?? category : category);
+
+const STATUS_LABEL_EN: Record<MemoryStatus, string> = { pending: "Pending", approved: "Published", rejected: "Rejected" };
+
+/** Display label of a memory status in the given language. */
+export const statusLabel = (status: MemoryStatus, lang: "bn" | "en" = "bn") => (lang === "en" ? STATUS_LABEL_EN[status] : STATUS_LABEL[status]);
+
 export const MEMORY_BUCKET = "memories";
 export const MAX_IMAGES = 6;
 export const IMAGE_MAX_RAW_BYTES = 20 * 1024 * 1024;

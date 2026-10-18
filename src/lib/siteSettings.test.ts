@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyNavSettings, isGroup, isPathActive, NAV } from "./navigation";
-import { buildSettings, DEFAULT_SETTINGS, paragraphs, safeHref, telHref } from "./siteSettings";
+import { buildSettings, DEFAULT_SETTINGS, DEFAULT_SETTINGS_EN, paragraphs, safeHref, telHref } from "./siteSettings";
 
 describe("buildSettings", () => {
   it("returns the defaults when nothing is stored", () => {
@@ -76,5 +76,45 @@ describe("navigation settings", () => {
     expect(isPathActive("/", "/")).toBe(true);
     expect(isPathActive("/about", "/about#institutions")).toBe(false);
     expect(isPathActive("/events", "/")).toBe(false);
+  });
+});
+
+describe("English settings", () => {
+  it("uses the English defaults when nothing is stored", () => {
+    const en = buildSettings([], "en");
+    expect(en.home.heroTitle).toBe(DEFAULT_SETTINGS_EN.home.heroTitle);
+    expect(en.home.features).toHaveLength(DEFAULT_SETTINGS.home.features.length);
+    expect(en.home.steps).toHaveLength(DEFAULT_SETTINGS.home.steps.length);
+  });
+  it("reads English text from the _en rows and shared fields from the Bengali rows", () => {
+    const rows = [
+      { key: "general", value: { email: "shared@x.co", address: "বাংলা ঠিকানা" } },
+      { key: "general_en", value: { email: "ignored@x.co", address: "English address" } },
+      { key: "nav", value: { hidden: ["gallery"] } },
+      { key: "home", value: { showEvents: false, heroTitle: "বাংলা শিরোনাম" } },
+    ];
+    const bn = buildSettings(rows, "bn");
+    const en = buildSettings(rows, "en");
+    expect(bn.general.address).toBe("বাংলা ঠিকানা");
+    expect(en.general.address).toBe("English address");
+    expect(en.general.email).toBe("shared@x.co");
+    expect(en.nav.hidden).toEqual(["gallery"]);
+    expect(en.home.showEvents).toBe(false);
+    expect(en.home.heroTitle).toBe(DEFAULT_SETTINGS_EN.home.heroTitle);
+  });
+  it("keeps institution contact details shared but the written text per language", () => {
+    const rows = [
+      { key: "institutions", value: { items: { nps: { phoneDisplay: "+880 1", desc: "বাংলা বর্ণনা", hidden: true } } } },
+      { key: "institutions_en", value: { items: { nps: { desc: "English text", phoneDisplay: "ignored" } } } },
+    ];
+    const en = buildSettings(rows, "en").institutions.items.nps;
+    expect(en.phoneDisplay).toBe("+880 1");
+    expect(en.hidden).toBe(true);
+    expect(en.desc).toBe("English text");
+  });
+  it("labels the menu in English", () => {
+    const nav = applyNavSettings({ labels: {}, hidden: [] }, "en");
+    expect(nav[0].label).toBe("Home");
+    expect(nav.every((e) => !/[\u0980-\u09FF]/.test(e.label))).toBe(true);
   });
 });

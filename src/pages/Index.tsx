@@ -15,6 +15,7 @@ import SectionHeading from "@/components/site/SectionHeading";
 import CountUp from "@/components/site/CountUp";
 import { useInstitutions, useSiteSettings } from "@/hooks/useSiteSettings";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useLang } from "@/lib/i18n";
 import { initialsOf } from "@/lib/format";
 import { safeHref } from "@/lib/siteSettings";
 
@@ -34,6 +35,7 @@ interface UpcomingEvent { id: string; title: string; event_date: string; locatio
 export default function Index() {
   const { settings } = useSiteSettings();
   const institutions = useInstitutions();
+  const { t, lang, locale } = useLang();
   const { home } = settings;
   usePageMeta();
 
@@ -67,10 +69,10 @@ export default function Index() {
   }, []);
 
   const displayStats = [
-    { value: stats.total, label: "প্রাক্তন ছাত্র", plus: true },
-    { value: stats.batches, label: "ব্যাচ", plus: true },
-    { value: stats.professions, label: "পেশা", plus: true },
-    { value: institutions.length, label: "প্রতিষ্ঠান", plus: false },
+    { value: stats.total, label: t("প্রাক্তন ছাত্র", "Alumni"), plus: true },
+    { value: stats.batches, label: t("ব্যাচ", "Batches"), plus: true },
+    { value: stats.professions, label: t("পেশা", "Professions"), plus: true },
+    { value: institutions.length, label: t("প্রতিষ্ঠান", "Institutions"), plus: false },
   ];
 
   const primaryHref = safeHref(home.primaryCtaLink) || "/register";
@@ -120,18 +122,18 @@ export default function Index() {
             <div className="relative rounded-3xl border border-white/20 bg-white/10 p-6 shadow-2xl backdrop-blur-xl">
               <div className="mb-5">
                 <div className="inline-block rounded-2xl bg-white p-3 shadow-md"><img src={nabarunLogo} alt="" className="h-12 w-auto" /></div>
-                <p className="mt-3 text-sm font-medium text-white/80">{institutions.length}টি প্রতিষ্ঠান · এক পরিবার</p>
+                <p className="mt-3 text-sm font-medium text-white/80">{lang === "en" ? `${institutions.length} institutions · one family` : `${institutions.length}টি প্রতিষ্ঠান · এক পরিবার`}</p>
               </div>
               <ul className="space-y-3">
                 {institutions.map((inst) => (
                   <li key={inst.id} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-md">
                     <img src={inst.logo} alt="" className="h-11 w-11 shrink-0 object-contain" />
-                    <span className="text-sm font-semibold leading-snug text-slate-800">{inst.nameBn}</span>
+                    <span className="text-sm font-semibold leading-snug text-slate-800">{inst.title}</span>
                   </li>
                 ))}
               </ul>
               <div className="mt-5 flex items-center gap-2 text-xs text-white/80">
-                <CheckCircle2 className="h-4 w-4 text-emerald-300" /> প্রতিটি প্রোফাইল অ্যাডমিন যাচাইকৃত
+                <CheckCircle2 className="h-4 w-4 text-emerald-300" /> {t("প্রতিটি প্রোফাইল অ্যাডমিন যাচাইকৃত", "Every profile is admin-verified")}
               </div>
             </div>
           </motion.div>
@@ -159,7 +161,7 @@ export default function Index() {
         <section className="mt-10 border-y bg-accent/5">
           <div className="container flex items-center gap-3 py-3">
             <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
-              <Bell className="h-3 w-3" /> নোটিশ
+              <Bell className="h-3 w-3" /> {t("নোটিশ", "Notice")}
             </span>
             <div className="flex-1 overflow-hidden" aria-live="off">
               <div className="animate-marquee flex w-max gap-10 whitespace-nowrap hover:[animation-play-state:paused]">
@@ -178,7 +180,7 @@ export default function Index() {
       {institutions.length > 0 && (
         <section className="py-20">
           <div className="container">
-            <SectionHeading badge="আমাদের প্রতিষ্ঠানসমূহ" icon={GraduationCap} title={home.institutionsTitle} subtitle={home.institutionsSubtitle} />
+            <SectionHeading badge={t("আমাদের প্রতিষ্ঠানসমূহ", "Our institutions")} icon={GraduationCap} title={home.institutionsTitle} subtitle={home.institutionsSubtitle} />
             <div className={`grid gap-6 ${institutions.length >= 3 ? "md:grid-cols-3" : institutions.length === 2 ? "md:grid-cols-2" : "mx-auto max-w-md"}`}>
               {institutions.map((inst, i) => (
                 <motion.div
@@ -190,17 +192,17 @@ export default function Index() {
                   className="card-lift group flex h-full flex-col items-center rounded-2xl border bg-card p-6 text-center shadow-card"
                 >
                   <div className="mb-5 flex h-28 w-full max-w-[220px] items-center justify-center rounded-xl border bg-white p-3 transition-transform duration-300 group-hover:scale-[1.03]">
-                    <img src={inst.logo} alt={`${inst.name} এর লোগো`} className="max-h-full w-auto object-contain" loading="lazy" />
+                    <img src={inst.logo} alt={t(`${inst.nameBn} এর লোগো`, `${inst.name} logo`)} className="max-h-full w-auto object-contain" loading="lazy" />
                   </div>
-                  <h3 className="font-display text-lg font-semibold">{inst.nameBn}</h3>
-                  <p className="text-xs text-muted-foreground">{inst.name}</p>
-                  {inst.established && <span className="mt-2 rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">স্থাপিত {inst.established}</span>}
+                  <h3 className="font-display text-lg font-semibold">{inst.title}</h3>
+                  <p className="text-xs text-muted-foreground">{inst.subtitle}</p>
+                  {inst.established && <span className="mt-2 rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">{t("স্থাপিত", "Est.")} {inst.established}</span>}
                   {inst.desc && <p className="mt-3 text-sm text-muted-foreground">{inst.desc}</p>}
                 </motion.div>
               ))}
             </div>
             <div className="mt-8 text-center">
-              <Button variant="outline" asChild className="rounded-full"><Link to="/about#institutions">যোগাযোগসহ বিস্তারিত <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+              <Button variant="outline" asChild className="rounded-full"><Link to="/about#institutions">{t("যোগাযোগসহ বিস্তারিত", "Details and contact")} <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
             </div>
           </div>
         </section>
@@ -238,7 +240,7 @@ export default function Index() {
       {/* How it works */}
       <section className="py-20">
         <div className="container">
-          <SectionHeading badge="কীভাবে যুক্ত হবেন" icon={UserCheck} title="তিন ধাপে নবারুণ পরিবারে" subtitle="ভুয়া অ্যাকাউন্ট ঠেকাতে প্রতিটি আবেদন অ্যাডমিন নিজে যাচাই করেন।" />
+          <SectionHeading badge={t("কীভাবে যুক্ত হবেন", "How to join")} icon={UserCheck} title={t("তিন ধাপে নবারুণ পরিবারে", "Join the Nabarun family in three steps")} subtitle={t("ভুয়া অ্যাকাউন্ট ঠেকাতে প্রতিটি আবেদন অ্যাডমিন নিজে যাচাই করেন।", "An admin personally verifies every application to keep fake accounts out.")} />
           <ol className="relative grid gap-6 md:grid-cols-3">
             <div className="hairline absolute left-[16%] right-[16%] top-8 hidden md:block" aria-hidden />
             {home.steps.filter((st) => st.title.trim()).map((s, i) => {
@@ -269,7 +271,7 @@ export default function Index() {
       {home.showEvents && events.length > 0 && (
         <section className="bg-muted/40 py-20">
           <div className="container">
-            <SectionHeading badge="আসন্ন ইভেন্ট" icon={Calendar} title="আসন্ন অনুষ্ঠান" />
+            <SectionHeading badge={t("আসন্ন ইভেন্ট", "Upcoming events")} icon={Calendar} title={t("আসন্ন অনুষ্ঠান", "Upcoming programmes")} />
             <div className="grid gap-6 md:grid-cols-3">
               {events.map((e, i) => (
                 <motion.div key={e.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
@@ -277,14 +279,14 @@ export default function Index() {
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Calendar className="h-6 w-6" /></div>
                   <div>
                     <h3 className="mb-1 font-display font-semibold">{e.title}</h3>
-                    <p className="text-sm text-muted-foreground">{new Date(e.event_date).toLocaleDateString("bn-BD", { year: "numeric", month: "long", day: "numeric" })}</p>
+                    <p className="text-sm text-muted-foreground">{new Date(e.event_date).toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric" })}</p>
                     {e.location && <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3 w-3" /> {e.location}</p>}
                   </div>
                 </motion.div>
               ))}
             </div>
             <div className="mt-8 text-center">
-              <Button variant="outline" asChild className="rounded-full"><Link to="/events">সকল ইভেন্ট দেখুন <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+              <Button variant="outline" asChild className="rounded-full"><Link to="/events">{t("সকল ইভেন্ট দেখুন", "See all events")} <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
             </div>
           </div>
         </section>
@@ -294,7 +296,7 @@ export default function Index() {
       {home.showTopAlumni && topAlumni.length > 0 && (
         <section className="py-20">
           <div className="container">
-            <SectionHeading badge="আমাদের গর্ব" icon={Trophy} title="বিশিষ্ট প্রাক্তন ছাত্র" subtitle="বিশেষ অর্জনকারী প্রাক্তন ছাত্রদের প্রোফাইল।" />
+            <SectionHeading badge={t("আমাদের গর্ব", "Our pride")} icon={Trophy} title={t("বিশিষ্ট প্রাক্তন ছাত্র", "Distinguished alumni")} subtitle={t("বিশেষ অর্জনকারী প্রাক্তন ছাত্রদের প্রোফাইল।", "Profiles of alumni with notable achievements.")} />
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {topAlumni.map((a, i) => (
                 <motion.div key={i} initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
@@ -305,7 +307,7 @@ export default function Index() {
                   </Avatar>
                   <h3 className="font-display text-lg font-semibold">{a.full_name || "—"}</h3>
                   {a.current_profession && <p className="text-sm font-medium text-primary">{a.current_profession}</p>}
-                  {a.batch_year && <p className="text-xs text-muted-foreground">ব্যাচ {a.batch_year}</p>}
+                  {a.batch_year && <p className="text-xs text-muted-foreground">{t("ব্যাচ", "Batch")} {a.batch_year}</p>}
                   {a.achievement && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">🏆 {a.achievement}</p>}
                 </motion.div>
               ))}

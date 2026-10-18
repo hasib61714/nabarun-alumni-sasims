@@ -9,6 +9,7 @@ export interface Institution {
   logo: string;
   /** One-line description shown on the home page cards. */
   desc: string;
+  descEn: string;
   address?: string;
   established?: string;
   phone: string;
@@ -25,6 +26,7 @@ export const institutions: Institution[] = [
     nameBn: "নবারুণ পাবলিক স্কুল",
     logo: npsLogo,
     desc: "মানসম্মত শিক্ষা ও নৈতিক মূল্যবোধের প্রতিষ্ঠান।",
+    descEn: "An institution of quality education and moral values.",
     established: "2003",
     phone: "+8801716461562",
     phoneDisplay: "+880 1716 461562",
@@ -36,6 +38,7 @@ export const institutions: Institution[] = [
     nameBn: "বিপ্লব লোপা মেমোরিয়াল গার্লস স্কুল",
     logo: blmsLogo,
     desc: "প্লে থেকে দশম শ্রেণি পর্যন্ত — সকাল ও দিবা শিফটে পাঠদান।",
+    descEn: "Play to Class 10, with morning and day shifts.",
     phone: "+8801717333008",
     phoneDisplay: "+880 1717 333008",
     email: "info.nabarun@gmail.com",
@@ -46,6 +49,7 @@ export const institutions: Institution[] = [
     nameBn: "নবারুণ কোচিং সেন্টার",
     logo: coachingLogo,
     desc: "পরীক্ষার প্রস্তুতি ও বিশেষ কোচিং সেবা।",
+    descEn: "Exam preparation and special coaching.",
     established: "1996",
     phone: "+8801798615440",
     phoneDisplay: "+880 1798 615440",

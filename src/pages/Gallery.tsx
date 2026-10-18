@@ -9,6 +9,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Search, Image as ImageIcon, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useLang } from "@/lib/i18n";
 
 interface GalleryPhoto {
   id: string;
@@ -21,7 +22,8 @@ interface GalleryPhoto {
 }
 
 export default function Gallery() {
-  usePageMeta("গ্যালারি", "নবারুণ এডুকেশন ফ্যামিলির স্মৃতি ও মুহূর্তের ছবি।");
+  const { t } = useLang();
+  usePageMeta(t("গ্যালারি", "Gallery"), t("নবারুণ এডুকেশন ফ্যামিলির স্মৃতি ও মুহূর্তের ছবি।", "Photos of memories and moments from the Nabarun Education Family."));
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -58,20 +60,20 @@ export default function Gallery() {
 
   return (
     <>
-    <PageHero badge="গ্যালারি" title="ফটো গ্যালারি" subtitle="নবারুণ এডুকেশন ফ্যামিলির স্মৃতি ও মুহূর্তগুলো" />
+    <PageHero badge={t("গ্যালারি", "Gallery")} title={t("ফটো গ্যালারি", "Photo Gallery")} subtitle={t("নবারুণ এডুকেশন ফ্যামিলির স্মৃতি ও মুহূর্তগুলো", "Memories and moments from the Nabarun Education Family")} />
     <div className="container py-12">
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-8 max-w-xl mx-auto">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="ছবি খুঁজুন..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+          <Input placeholder={t("ছবি খুঁজুন...", "Search photos...")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         {events.length > 0 && (
           <Select value={eventFilter} onValueChange={setEventFilter}>
-            <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="ইভেন্ট" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder={t("ইভেন্ট", "Event")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">সকল ইভেন্ট</SelectItem>
+              <SelectItem value="all">{t("সকল ইভেন্ট", "All events")}</SelectItem>
               {events.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -87,7 +89,7 @@ export default function Gallery() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
           <ImageIcon className="h-16 w-16 mx-auto mb-4 opacity-30" />
-          <p className="text-lg">কোনো ছবি পাওয়া যায়নি</p>
+          <p className="text-lg">{t("কোনো ছবি পাওয়া যায়নি", "No photos found")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -136,16 +138,16 @@ export default function Gallery() {
                   <p className="text-white/70 text-sm mt-1">{filtered[lightboxIdx].description}</p>
                 )}
                 {filtered[lightboxIdx].event_name && (
-                  <p className="text-white/50 text-xs mt-1">{filtered[lightboxIdx].event_name} {filtered[lightboxIdx].batch_year ? `· ব্যাচ ${filtered[lightboxIdx].batch_year}` : ""}</p>
+                  <p className="text-white/50 text-xs mt-1">{filtered[lightboxIdx].event_name} {filtered[lightboxIdx].batch_year ? t(`· ব্যাচ ${filtered[lightboxIdx].batch_year}`, `· Batch ${filtered[lightboxIdx].batch_year}`) : ""}</p>
                 )}
               </div>
-              <Button variant="ghost" size="icon" className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); prevPhoto(); }}>
+              <Button variant="ghost" size="icon" aria-label={t("আগের ছবি", "Previous photo")} className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); prevPhoto(); }}>
                 <ChevronLeft className="h-8 w-8" />
               </Button>
-              <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); nextPhoto(); }}>
+              <Button variant="ghost" size="icon" aria-label={t("পরের ছবি", "Next photo")} className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); nextPhoto(); }}>
                 <ChevronRight className="h-8 w-8" />
               </Button>
-              <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-white hover:bg-white/20" onClick={closeLightbox}>
+              <Button variant="ghost" size="icon" aria-label={t("বন্ধ করুন", "Close")} className="absolute top-2 right-2 text-white hover:bg-white/20" onClick={closeLightbox}>
                 <X className="h-6 w-6" />
               </Button>
             </div>

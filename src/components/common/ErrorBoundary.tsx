@@ -20,11 +20,11 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
     if (!this.state.failed) return this.props.children;
     return (
       <div role="alert" className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-        <h1 className="font-display text-3xl font-bold">কিছু একটা ভুল হয়েছে</h1>
-        <p className="max-w-md text-muted-foreground">পেজটি দেখাতে সমস্যা হচ্ছে। একটু পরে আবার চেষ্টা করুন — সমস্যা থাকলে আমাদের জানান।</p>
+        <h1 className="font-display text-3xl font-bold">কিছু একটা ভুল হয়েছে · Something went wrong</h1>
+        <p className="max-w-md text-muted-foreground">পেজটি দেখাতে সমস্যা হচ্ছে। একটু পরে আবার চেষ্টা করুন।<br />This page could not be shown. Please try again in a moment.</p>
         <div className="flex gap-3">
-          <Button onClick={() => window.location.reload()}><RefreshCw className="mr-2 h-4 w-4" /> আবার চেষ্টা করুন</Button>
-          <Button variant="outline" onClick={() => { window.location.href = "/"; }}>হোমে ফিরুন</Button>
+          <Button onClick={() => window.location.reload()}><RefreshCw className="mr-2 h-4 w-4" /> আবার চেষ্টা করুন · Retry</Button>
+          <Button variant="outline" onClick={() => { window.location.href = "/"; }}>হোমে ফিরুন · Home</Button>
         </div>
       </div>
     );

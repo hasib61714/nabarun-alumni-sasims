@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Json } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { institutions as baseInstitutions, type Institution } from "@/data/institutions";
+import { useLang, type Lang } from "@/lib/i18n";
 import { buildSettings, DEFAULT_SETTINGS, telHref, type SettingsKey, type SiteSettings } from "@/lib/siteSettings";
 
 const CACHE_KEY = "site-settings-cache-v1";
@@ -24,7 +25,10 @@ function writeCache(rows: Row[]) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(rows)); } catch { /* storage unavailable */ }
 }
 
-export function useSiteSettings(): { settings: SiteSettings; loading: boolean } {
+/** Settings in the visitor's language, or in `forceLang` (the admin editor edits one language at a time). */
+export function useSiteSettings(forceLang?: Lang): { settings: SiteSettings; loading: boolean } {
+  const { lang: visitorLang } = useLang();
+  const lang = forceLang ?? visitorLang;
   const { data, isLoading } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async (): Promise<Row[]> => {
@@ -38,15 +42,15 @@ export function useSiteSettings(): { settings: SiteSettings; loading: boolean } 
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
-  const settings = useMemo(() => buildSettings(data), [data]);
+  const settings = useMemo(() => buildSettings(data, lang), [data, lang]);
   return { settings, loading: isLoading };
 }
 
 export function useSaveSetting() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ key, value }: { key: SettingsKey; value: object }) => {
-      const { error } = await supabase.from("site_settings").upsert({ key, value: value as Json }, { onConflict: "key" });
+    mutationFn: async ({ key, value, lang = "bn" }: { key: SettingsKey; value: object; lang?: Lang }) => {
+      const { error } = await supabase.from("site_settings").upsert({ key: lang === "en" ? `${key}_en` : key, value: value as Json }, { onConflict: "key" });
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["site-settings"] }),
@@ -56,17 +60,25 @@ export function useSaveSetting() {
 export function useResetSetting() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (key: SettingsKey) => {
-      const { error } = await supabase.from("site_settings").delete().eq("key", key);
+    mutationFn: async ({ key, lang = "bn" }: { key: SettingsKey; lang?: Lang }) => {
+      const { error } = await supabase.from("site_settings").delete().eq("key", lang === "en" ? `${key}_en` : key);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["site-settings"] }),
   });
 }
 
-/** The three institutions with the admin's edits applied; hidden ones are dropped. */
-export function useInstitutions(): Institution[] {
+export interface LocalizedInstitution extends Institution {
+  /** Name in the visitor's language. */
+  title: string;
+  /** The name in the other language (shown smaller). */
+  subtitle: string;
+}
+
+/** The three institutions with the admin's edits applied, in the visitor's language; hidden ones are dropped. */
+export function useInstitutions(): LocalizedInstitution[] {
   const { settings } = useSiteSettings();
+  const { lang } = useLang();
   return useMemo(
     () =>
       baseInstitutions
@@ -74,11 +86,16 @@ export function useInstitutions(): Institution[] {
         .map((i) => {
           const o = settings.institutions.items[i.id] ?? {};
           const phoneDisplay = o.phoneDisplay ?? i.phoneDisplay;
+          const en = lang === "en";
+          const name = o.name || i.name;
+          const nameBn = o.nameBn || i.nameBn;
           return {
             ...i,
-            name: o.name || i.name,
-            nameBn: o.nameBn || i.nameBn,
-            desc: o.desc ?? i.desc,
+            name,
+            nameBn,
+            title: en ? name : nameBn,
+            subtitle: en ? nameBn : name,
+            desc: o.desc ?? (en ? i.descEn : i.desc),
             established: o.established ?? i.established,
             phoneDisplay,
             phone: o.phoneDisplay ? telHref(o.phoneDisplay).replace(/^tel:/, "") : i.phone,
@@ -87,7 +104,7 @@ export function useInstitutions(): Institution[] {
             address: o.address ?? i.address,
           };
         }),
-    [settings.institutions],
+    [settings.institutions, lang],
   );
 }
 

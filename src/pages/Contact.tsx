@@ -9,20 +9,22 @@ import { supabase } from "@/integrations/supabase/client";
 import PageHero from "@/components/site/PageHero";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useLang } from "@/lib/i18n";
 import { isExternal, safeHref, telHref } from "@/lib/siteSettings";
 
 export default function Contact() {
+  const { t } = useLang();
   const { settings } = useSiteSettings();
   const { general } = settings;
-  usePageMeta("যোগাযোগ", "প্রশ্ন, পরামর্শ বা সহযোগিতার জন্য আমাদের সাথে যোগাযোগ করুন।");
+  usePageMeta(t("যোগাযোগ", "Contact"), t("প্রশ্ন, পরামর্শ বা সহযোগিতার জন্য আমাদের সাথে যোগাযোগ করুন।", "Get in touch with us for questions, suggestions or collaboration."));
   const website = safeHref(general.website);
   const mapUrl = safeHref(general.mapUrl);
   const contactInfo = [
-    general.email && { icon: Mail, label: "ইমেইল", value: general.email, href: `mailto:${general.email}` },
-    general.phoneDisplay && { icon: Phone, label: "ফোন", value: general.phoneDisplay, href: telHref(general.phone || general.phoneDisplay) },
-    general.address && { icon: MapPin, label: "ঠিকানা", value: general.address, href: mapUrl || null },
-    website && { icon: Globe, label: "ওয়েবসাইট", value: website.replace(/^https?:\/\//i, "").replace(/\/$/, ""), href: website },
-    general.workingHours && { icon: Clock, label: "সময়সূচি", value: general.workingHours, href: null },
+    general.email && { icon: Mail, label: t("ইমেইল", "Email"), value: general.email, href: `mailto:${general.email}` },
+    general.phoneDisplay && { icon: Phone, label: t("ফোন", "Phone"), value: general.phoneDisplay, href: telHref(general.phone || general.phoneDisplay) },
+    general.address && { icon: MapPin, label: t("ঠিকানা", "Address"), value: general.address, href: mapUrl || null },
+    website && { icon: Globe, label: t("ওয়েবসাইট", "Website"), value: website.replace(/^https?:\/\//i, "").replace(/\/$/, ""), href: website },
+    general.workingHours && { icon: Clock, label: t("সময়সূচি", "Working hours"), value: general.workingHours, href: null },
   ].filter(Boolean) as { icon: typeof Mail; label: string; value: string; href: string | null }[];
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
@@ -33,16 +35,16 @@ export default function Contact() {
     const { error } = await supabase.from("contact_messages").insert(form);
     setLoading(false);
     if (error) {
-      toast.error("বার্তা পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
+      toast.error(t("বার্তা পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।", "Could not send your message. Please try again."));
     } else {
-      toast.success("বার্তা পাঠানো হয়েছে! আমরা শীঘ্রই আপনার সাথে যোগাযোগ করব।");
+      toast.success(t("বার্তা পাঠানো হয়েছে! আমরা শীঘ্রই আপনার সাথে যোগাযোগ করব।", "Message sent! We will get back to you soon."));
       setForm({ name: "", email: "", subject: "", message: "" });
     }
   };
 
   return (
     <div>
-      <PageHero title="যোগাযোগ করুন" subtitle="প্রশ্ন আছে? আমরা আপনার কথা শুনতে চাই।" />
+      <PageHero title={t("যোগাযোগ করুন", "Contact Us")} subtitle={t("প্রশ্ন আছে? আমরা আপনার কথা শুনতে চাই।", "Have a question? We would love to hear from you.")} />
 
       <section className="py-16">
         <div className="container max-w-5xl">
@@ -71,17 +73,17 @@ export default function Contact() {
 
             <Card className="md:col-span-3 shadow-card">
               <CardContent className="p-6">
-                <h2 className="font-display text-xl font-bold mb-5">বার্তা পাঠান</h2>
+                <h2 className="font-display text-xl font-bold mb-5">{t("বার্তা পাঠান", "Send a Message")}</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <Input placeholder="আপনার নাম" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required maxLength={100} />
-                    <Input placeholder="আপনার ইমেইল" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required maxLength={255} />
+                    <Input placeholder={t("আপনার নাম", "Your name")} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required maxLength={100} />
+                    <Input placeholder={t("আপনার ইমেইল", "Your email")} type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required maxLength={255} />
                   </div>
-                  <Input placeholder="বিষয়" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required maxLength={200} />
-                  <Textarea placeholder="আপনার বার্তা..." rows={5} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required maxLength={5000} />
+                  <Input placeholder={t("বিষয়", "Subject")} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required maxLength={200} />
+                  <Textarea placeholder={t("আপনার বার্তা...", "Your message...")} rows={5} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required maxLength={5000} />
                   <Button type="submit" disabled={loading} className="w-full">
                     <Send className="mr-2 h-4 w-4" />
-                    {loading ? "পাঠানো হচ্ছে..." : "বার্তা পাঠান"}
+                    {loading ? t("পাঠানো হচ্ছে...", "Sending...") : t("বার্তা পাঠান", "Send Message")}
                   </Button>
                 </form>
               </CardContent>

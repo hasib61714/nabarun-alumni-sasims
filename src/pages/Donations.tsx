@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { Heart, Target, HandCoins, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useLang } from "@/lib/i18n";
+import { formatTaka } from "@/lib/format";
 
 interface Campaign {
   id: string;
@@ -24,10 +26,19 @@ interface Campaign {
   created_at: string;
 }
 
+// Payment methods are stored in Bengali; the English map only changes the label shown.
 const PAYMENT_METHODS = ["বিকাশ", "নগদ", "রকেট", "ব্যাংক ট্রান্সফার", "নগদ অর্থ"];
+const PAYMENT_LABELS_EN: Record<string, string> = {
+  "বিকাশ": "bKash",
+  "নগদ": "Nagad",
+  "রকেট": "Rocket",
+  "ব্যাংক ট্রান্সফার": "Bank transfer",
+  "নগদ অর্থ": "Cash",
+};
 
 export default function Donations() {
-  usePageMeta("অনুদান", "নবারুণ এডুকেশন ফ্যামিলির উন্নয়নে অবদান রাখুন।");
+  const { t, lang } = useLang();
+  usePageMeta(t("অনুদান", "Donations"), t("নবারুণ এডুকেশন ফ্যামিলির উন্নয়নে অবদান রাখুন।", "Support the growth of the Nabarun Education Family."));
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState<string>("");
@@ -66,7 +77,7 @@ export default function Donations() {
     e.preventDefault();
     const amount = Number(asciiDigits(form.amount).trim());
     if (!form.donor_name || !amount || amount <= 0) {
-      toast.error("নাম ও পরিমাণ অবশ্যই দিন");
+      toast.error(t("নাম ও পরিমাণ অবশ্যই দিন", "Please enter your name and the amount"));
       return;
     }
     setSubmitting(true);
@@ -86,7 +97,7 @@ export default function Donations() {
       toast.error(error.message);
     } else {
       setSubmitted(true);
-      toast.success("আপনার অনুদান জমা হয়েছে! অ্যাডমিন অনুমোদনের পর এটি যুক্ত হবে।");
+      toast.success(t("আপনার অনুদান জমা হয়েছে! অ্যাডমিন অনুমোদনের পর এটি যুক্ত হবে।", "Your donation has been submitted! It will be added once an admin approves it."));
     }
   };
 
@@ -94,7 +105,7 @@ export default function Donations() {
 
   return (
     <>
-    <PageHero badge="অনুদান" title="অনুদান" subtitle="নবারুণ এডুকেশন ফ্যামিলির উন্নয়নে আপনার অবদান রাখুন" />
+    <PageHero badge={t("অনুদান", "Donate")} title={t("অনুদান", "Donations")} subtitle={t("নবারুণ এডুকেশন ফ্যামিলির উন্নয়নে আপনার অবদান রাখুন", "Contribute to the growth of the Nabarun Education Family")} />
     <div className="container py-12">
 
       {/* Stats */}
@@ -105,8 +116,8 @@ export default function Donations() {
               <HandCoins className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xl font-display font-bold">৳{totalDonated.toLocaleString("bn-BD")}</p>
-              <p className="text-xs text-muted-foreground">মোট অনুদান</p>
+              <p className="text-xl font-display font-bold">{formatTaka(totalDonated, lang)}</p>
+              <p className="text-xs text-muted-foreground">{t("মোট অনুদান", "Total donated")}</p>
             </div>
           </CardContent>
         </Card>
@@ -117,7 +128,7 @@ export default function Donations() {
             </div>
             <div>
               <p className="text-xl font-display font-bold">{campaigns.length}</p>
-              <p className="text-xs text-muted-foreground">সক্রিয় ক্যাম্পেইন</p>
+              <p className="text-xs text-muted-foreground">{t("সক্রিয় ক্যাম্পেইন", "Active campaigns")}</p>
             </div>
           </CardContent>
         </Card>
@@ -127,7 +138,7 @@ export default function Donations() {
               <Heart className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">প্রতিটি অনুদান গুরুত্বপূর্ণ</p>
+              <p className="text-xs text-muted-foreground">{t("প্রতিটি অনুদান গুরুত্বপূর্ণ", "Every donation matters")}</p>
             </div>
           </CardContent>
         </Card>
@@ -136,7 +147,7 @@ export default function Donations() {
       {/* Active Campaigns */}
       {campaigns.length > 0 && (
         <div className="mb-10">
-          <h2 className="font-display text-xl font-semibold mb-4">সক্রিয় ক্যাম্পেইন</h2>
+          <h2 className="font-display text-xl font-semibold mb-4">{t("সক্রিয় ক্যাম্পেইন", "Active campaigns")}</h2>
           <div className="grid md:grid-cols-2 gap-4">
             {campaigns.map((c, i) => {
               const raised = donationTotals[c.id] || 0;
@@ -147,20 +158,20 @@ export default function Donations() {
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between mb-2">
                         <h3 className="font-semibold">{c.title}</h3>
-                        <Badge variant="default">সক্রিয়</Badge>
+                        <Badge variant="default">{t("সক্রিয়", "Active")}</Badge>
                       </div>
                       {c.description && <p className="text-sm text-muted-foreground mb-3">{c.description}</p>}
                       {c.goal_amount && (
                         <div className="space-y-2">
-                          <Progress value={progress} className="h-2" aria-label={`${c.title} — অগ্রগতি`} />
+                          <Progress value={progress} className="h-2" aria-label={`${c.title} — ${t("অগ্রগতি", "Progress")}`} />
                           <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>৳{raised.toLocaleString("bn-BD")} সংগৃহীত</span>
-                            <span>লক্ষ্য: ৳{c.goal_amount.toLocaleString("bn-BD")}</span>
+                            <span>{t(`${formatTaka(raised, lang)} সংগৃহীত`, `${formatTaka(raised, lang)} raised`)}</span>
+                            <span>{t("লক্ষ্য", "Goal")}: {formatTaka(c.goal_amount, lang)}</span>
                           </div>
                         </div>
                       )}
                       <Button size="sm" className="mt-3" onClick={() => setSelectedCampaign(c.id)}>
-                        এই ক্যাম্পেইনে দান করুন
+                        {t("এই ক্যাম্পেইনে দান করুন", "Donate to this campaign")}
                       </Button>
                     </CardContent>
                   </Card>
@@ -175,66 +186,66 @@ export default function Donations() {
       <div className="max-w-lg mx-auto">
         <Card className="shadow-elevated">
           <CardHeader className="text-center">
-            <CardTitle className="font-display text-xl">অনুদান ফর্ম</CardTitle>
-            <CardDescription>আপনার তথ্য ও অনুদানের পরিমাণ দিন</CardDescription>
+            <CardTitle className="font-display text-xl">{t("অনুদান ফর্ম", "Donation Form")}</CardTitle>
+            <CardDescription>{t("আপনার তথ্য ও অনুদানের পরিমাণ দিন", "Enter your details and the donation amount")}</CardDescription>
           </CardHeader>
           <CardContent>
             {submitted ? (
               <div className="text-center py-8">
                 <CheckCircle className="h-16 w-16 text-primary mx-auto mb-4" />
-                <h3 className="font-display text-xl font-semibold mb-2">ধন্যবাদ!</h3>
-                <p className="text-muted-foreground">আপনার অনুদান জমা হয়েছে। অ্যাডমিন অনুমোদনের পর এটি তালিকায় যুক্ত হবে।</p>
+                <h3 className="font-display text-xl font-semibold mb-2">{t("ধন্যবাদ!", "Thank you!")}</h3>
+                <p className="text-muted-foreground">{t("আপনার অনুদান জমা হয়েছে। অ্যাডমিন অনুমোদনের পর এটি তালিকায় যুক্ত হবে।", "Your donation has been submitted. It will be listed once an admin approves it.")}</p>
                 <Button className="mt-4" onClick={() => { setSubmitted(false); setForm({ donor_name: "", donor_email: "", donor_phone: "", amount: "", purpose: "", payment_method: "বিকাশ", transaction_id: "" }); }}>
-                  আরেকটি অনুদান দিন
+                  {t("আরেকটি অনুদান দিন", "Make another donation")}
                 </Button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 {selectedCampaign && (
                   <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
-                    ক্যাম্পেইন: <strong>{campaigns.find((c) => c.id === selectedCampaign)?.title}</strong>
-                    <button type="button" onClick={() => setSelectedCampaign("")} className="ml-2 text-xs text-primary hover:underline">পরিবর্তন</button>
+                    {t("ক্যাম্পেইন", "Campaign")}: <strong>{campaigns.find((c) => c.id === selectedCampaign)?.title}</strong>
+                    <button type="button" onClick={() => setSelectedCampaign("")} className="ml-2 text-xs text-primary hover:underline">{t("পরিবর্তন", "Change")}</button>
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2 col-span-2">
-                    <Label>আপনার নাম *</Label>
-                    <Input value={form.donor_name} onChange={(e) => setForm({ ...form, donor_name: e.target.value })} placeholder="পূর্ণ নাম" required maxLength={100} />
+                    <Label>{t("আপনার নাম *", "Your name *")}</Label>
+                    <Input value={form.donor_name} onChange={(e) => setForm({ ...form, donor_name: e.target.value })} placeholder={t("পূর্ণ নাম", "Full name")} required maxLength={100} />
                   </div>
                   <div className="space-y-2">
-                    <Label>ইমেইল</Label>
+                    <Label>{t("ইমেইল", "Email")}</Label>
                     <Input type="email" value={form.donor_email} onChange={(e) => setForm({ ...form, donor_email: e.target.value })} placeholder="your@email.com" maxLength={255} />
                   </div>
                   <div className="space-y-2">
-                    <Label>ফোন</Label>
+                    <Label>{t("ফোন", "Phone")}</Label>
                     <Input value={form.donor_phone} onChange={(e) => setForm({ ...form, donor_phone: e.target.value })} placeholder="01XXXXXXXXX" maxLength={20} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>পরিমাণ (৳) *</Label>
+                    <Label>{t("পরিমাণ (৳) *", "Amount (৳) *")}</Label>
                     <Input type="number" min="1" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="500" required />
                   </div>
                   <div className="space-y-2">
-                    <Label>পেমেন্ট মাধ্যম</Label>
+                    <Label>{t("পেমেন্ট মাধ্যম", "Payment method")}</Label>
                     <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
-                      <SelectTrigger aria-label="পেমেন্ট মাধ্যম"><SelectValue /></SelectTrigger>
+                      <SelectTrigger aria-label={t("পেমেন্ট মাধ্যম", "Payment method")}><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                        {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{t(m, PAYMENT_LABELS_EN[m] ?? m)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>ট্রানজেকশন আইডি</Label>
-                  <Input value={form.transaction_id} onChange={(e) => setForm({ ...form, transaction_id: e.target.value })} placeholder="পেমেন্টের ট্রানজেকশন আইডি" maxLength={100} />
+                  <Label>{t("ট্রানজেকশন আইডি", "Transaction ID")}</Label>
+                  <Input value={form.transaction_id} onChange={(e) => setForm({ ...form, transaction_id: e.target.value })} placeholder={t("পেমেন্টের ট্রানজেকশন আইডি", "Payment transaction ID")} maxLength={100} />
                 </div>
                 <div className="space-y-2">
-                  <Label>উদ্দেশ্য / মন্তব্য</Label>
-                  <Textarea value={form.purpose} onChange={(e) => setForm({ ...form, purpose: e.target.value })} placeholder="কোন কাজে ব্যবহার হোক..." rows={2} maxLength={500} />
+                  <Label>{t("উদ্দেশ্য / মন্তব্য", "Purpose / note")}</Label>
+                  <Textarea value={form.purpose} onChange={(e) => setForm({ ...form, purpose: e.target.value })} placeholder={t("কোন কাজে ব্যবহার হোক...", "How should it be used...")} rows={2} maxLength={500} />
                 </div>
                 <Button type="submit" className="w-full" disabled={submitting}>
-                  <Heart className="mr-2 h-4 w-4" /> {submitting ? "জমা হচ্ছে..." : "অনুদান জমা দিন"}
+                  <Heart className="mr-2 h-4 w-4" /> {submitting ? t("জমা হচ্ছে...", "Submitting...") : t("অনুদান জমা দিন", "Submit donation")}
                 </Button>
               </form>
             )}

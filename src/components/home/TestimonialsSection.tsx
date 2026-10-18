@@ -4,6 +4,7 @@ import { MessageSquareQuote, Quote } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { initialsOf } from "@/lib/format";
+import { useLang } from "@/lib/i18n";
 
 interface Testimonial {
   id: string;
@@ -16,6 +17,7 @@ interface Testimonial {
 
 /** Approved testimonials only; the section stays hidden until there are real ones. */
 export default function TestimonialsSection() {
+  const { t, lang } = useLang();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
 
   useEffect(() => {
@@ -37,10 +39,10 @@ export default function TestimonialsSection() {
       <div className="container">
         <div className="mx-auto mb-12 max-w-2xl text-center">
           <span className="mb-4 inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground">
-            <MessageSquareQuote className="h-4 w-4" /> প্রাক্তন ছাত্রদের মতামত
+            <MessageSquareQuote className="h-4 w-4" /> {t("প্রাক্তন ছাত্রদের মতামত", "Alumni voices")}
           </span>
-          <h2 className="mb-3 font-display text-3xl font-bold md:text-4xl">তারা কী বলেন</h2>
-          <p className="text-muted-foreground">নবারুণ পরিবারের সদস্যদের অভিজ্ঞতা ও অনুভূতি।</p>
+          <h2 className="mb-3 font-display text-3xl font-bold md:text-4xl">{t("তারা কী বলেন", "What they say")}</h2>
+          <p className="text-muted-foreground">{t("নবারুণ পরিবারের সদস্যদের অভিজ্ঞতা ও অনুভূতি।", "Experiences and feelings from members of the Nabarun family.")}</p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -63,7 +65,7 @@ export default function TestimonialsSection() {
                 <div>
                   <p className="text-sm font-semibold">{t.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {[t.profession, t.batch_year ? `ব্যাচ ${t.batch_year}` : null].filter(Boolean).join(" • ")}
+                    {[t.profession, t.batch_year ? `${lang === "en" ? "Batch" : "ব্যাচ"} ${t.batch_year}` : null].filter(Boolean).join(" • ")}
                   </p>
                 </div>
               </figcaption>

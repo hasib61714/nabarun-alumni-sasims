@@ -9,8 +9,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { motion } from "framer-motion";
 import { CalendarDays, MapPin, Clock, Filter } from "lucide-react";
 import { format, isSameDay, parseISO } from "date-fns";
-import { bn } from "date-fns/locale";
+import { bn, enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/lib/i18n";
 
 interface EventRow {
   id: string;
@@ -31,8 +32,20 @@ const CATEGORY_COLORS: Record<string, string> = {
   "অন্যান্য": "bg-muted text-muted-foreground border-border",
 };
 
+// Categories are stored in Bengali; this only translates the label shown to English visitors.
+const CATEGORY_LABELS_EN: Record<string, string> = {
+  "অনুষ্ঠান": "Ceremony",
+  "পরীক্ষা": "Exam",
+  "সভা": "Meeting",
+  "খেলাধুলা": "Sports",
+  "অন্যান্য": "Other",
+};
+
 export default function Events() {
-  usePageMeta("ইভেন্ট", "আসন্ন ও বিগত অনুষ্ঠানসমূহ।");
+  const { t, lang } = useLang();
+  const dateLocale = lang === "en" ? enUS : bn;
+  const categoryLabel = (c: string) => t(c, CATEGORY_LABELS_EN[c] ?? c);
+  usePageMeta(t("ইভেন্ট", "Events"), t("আসন্ন ও বিগত অনুষ্ঠানসমূহ।", "Upcoming and past events."));
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -69,7 +82,7 @@ export default function Events() {
 
   const formatDate = (dateStr: string) => {
     try {
-      return format(parseISO(dateStr), "d MMMM yyyy, EEEE", { locale: bn });
+      return format(parseISO(dateStr), "d MMMM yyyy, EEEE", { locale: dateLocale });
     } catch {
       return dateStr;
     }
@@ -87,13 +100,13 @@ export default function Events() {
           <div className="flex items-start gap-4">
             <div className="shrink-0 w-14 h-14 rounded-xl bg-primary/10 flex flex-col items-center justify-center text-primary">
               <span className="text-lg font-bold leading-none">{format(parseISO(event.event_date), "d")}</span>
-              <span className="text-[10px] font-medium">{format(parseISO(event.event_date), "MMM", { locale: bn })}</span>
+              <span className="text-[10px] font-medium">{format(parseISO(event.event_date), "MMM", { locale: dateLocale })}</span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h3 className="font-semibold text-base">{event.title}</h3>
                 <Badge variant="outline" className={cn("text-[10px]", CATEGORY_COLORS[event.category] || CATEGORY_COLORS["অন্যান্য"])}>
-                  {event.category}
+                  {categoryLabel(event.category)}
                 </Badge>
               </div>
               {event.description && (
@@ -123,7 +136,7 @@ export default function Events() {
 
   return (
     <>
-    <PageHero badge="ইভেন্ট" title="ইভেন্ট ক্যালেন্ডার" subtitle="নবারুণ এডুকেশন ফ্যামিলির আসন্ন ও বিগত অনুষ্ঠানসমূহ" />
+    <PageHero badge={t("ইভেন্ট", "Events")} title={t("ইভেন্ট ক্যালেন্ডার", "Event Calendar")} subtitle={t("নবারুণ এডুকেশন ফ্যামিলির আসন্ন ও বিগত অনুষ্ঠানসমূহ", "Upcoming and past events of the Nabarun Education Family")} />
     <div className="container py-12">
 
       <div className="grid lg:grid-cols-[320px_1fr] gap-8">
@@ -145,17 +158,17 @@ export default function Events() {
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger><SelectValue placeholder="ক্যাটাগরি" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("ক্যাটাগরি", "Category")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">সকল ক্যাটাগরি</SelectItem>
-                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                <SelectItem value="all">{t("সকল ক্যাটাগরি", "All categories")}</SelectItem>
+                {categories.map((c) => <SelectItem key={c} value={c}>{categoryLabel(c)}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
 
           {selectedDate && (
             <button onClick={() => setSelectedDate(undefined)} className="text-xs text-primary hover:underline">
-              তারিখ ফিল্টার মুছুন
+              {t("তারিখ ফিল্টার মুছুন", "Clear date filter")}
             </button>
           )}
         </div>
@@ -169,14 +182,14 @@ export default function Events() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
               <CalendarDays className="h-16 w-16 mx-auto mb-4 opacity-30" />
-              <p className="text-lg">কোনো ইভেন্ট পাওয়া যায়নি</p>
+              <p className="text-lg">{t("কোনো ইভেন্ট পাওয়া যায়নি", "No events found")}</p>
             </div>
           ) : (
             <>
               {upcoming.length > 0 && (
                 <div>
                   <h2 className="font-display text-lg font-semibold mb-4 flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-primary" /> আসন্ন ইভেন্ট
+                    <span className="h-2 w-2 rounded-full bg-primary" /> {t("আসন্ন ইভেন্ট", "Upcoming events")}
                   </h2>
                   <div className="space-y-3">{upcoming.map(renderEventCard)}</div>
                 </div>
@@ -184,7 +197,7 @@ export default function Events() {
               {past.length > 0 && (
                 <div>
                   <h2 className="font-display text-lg font-semibold mb-4 flex items-center gap-2 text-muted-foreground">
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground" /> বিগত ইভেন্ট
+                    <span className="h-2 w-2 rounded-full bg-muted-foreground" /> {t("বিগত ইভেন্ট", "Past events")}
                   </h2>
                   <div className="space-y-3 opacity-70">{past.map(renderEventCard)}</div>
                 </div>
