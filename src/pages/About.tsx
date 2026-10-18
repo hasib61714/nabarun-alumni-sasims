@@ -4,15 +4,13 @@ import { motion } from "framer-motion";
 import { Target, Eye, Heart, Code, Linkedin, Facebook, Github, Globe } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import nabarunLogo from "@/assets/nabarun-logo.png";
 import developerPhoto from "@/assets/developer-photo.png";
 import { InstitutionCards } from "@/components/InstitutionsSection";
-
-const values = [
-  { icon: Target, title: "আমাদের মিশন", desc: "আমাদের প্রতিষ্ঠানের প্রতিটি ছাত্রের যাত্রাপথকে ডিজিটালভাবে সংরক্ষণ ও উদযাপন করা।" },
-  { icon: Eye, title: "আমাদের ভিশন", desc: "সবচেয়ে সংযুক্ত ও সহায়ক প্রাক্তন ছাত্র নেটওয়ার্ক তৈরি যা বর্তমান ও ভবিষ্যৎ ছাত্রদের ক্ষমতায়ন করে।" },
-  { icon: Heart, title: "আমাদের মূল্যবোধ", desc: "শ্রেষ্ঠত্ব, সততা, সম্প্রদায় এবং আজীবন শিক্ষা আমাদের সবকিছুর পথপ্রদর্শক।" },
-];
+import PageHero from "@/components/site/PageHero";
+import SectionHeading from "@/components/site/SectionHeading";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { paragraphs } from "@/lib/siteSettings";
 
 const developer = {
   name: "Md. Hasibul Hasan",
@@ -27,6 +25,14 @@ const developer = {
 
 export default function About() {
   const { hash } = useLocation();
+  const { settings } = useSiteSettings();
+  const { about } = settings;
+  usePageMeta("আমাদের সম্পর্কে", about.heroSubtitle);
+  const values = [
+    { icon: Target, title: "আমাদের মিশন", desc: about.mission },
+    { icon: Eye, title: "আমাদের ভিশন", desc: about.vision },
+    { icon: Heart, title: "আমাদের মূল্যবোধ", desc: about.values },
+  ].filter((v) => v.desc.trim());
   useEffect(() => {
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
   }, [hash]);
@@ -40,20 +46,7 @@ export default function About() {
 
   return (
     <div>
-      <section className="bg-hero-gradient py-20">
-        <div className="container">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <img src={nabarunLogo} alt="Nabarun" className="h-12 w-auto drop-shadow-lg" />
-              <span className="inline-flex items-center rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-1.5 text-sm text-primary-foreground/90">
-                আমাদের সম্পর্কে
-              </span>
-            </div>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">নবারুণ এডুকেশন ফ্যামিলি</h1>
-            <p className="text-primary-foreground/80 text-lg">দশকের শিক্ষায় শ্রেষ্ঠত্ব, হাজার হাজার সফল প্রাক্তন ছাত্র, এবং আগামীর নেতা তৈরির প্রতিশ্রুতি।</p>
-          </motion.div>
-        </div>
-      </section>
+      <PageHero badge="আমাদের সম্পর্কে" title={about.heroTitle} subtitle={about.heroSubtitle} />
 
       <section className="py-20">
         <div className="container">
@@ -66,7 +59,7 @@ export default function About() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="glass-card rounded-xl p-8 shadow-card text-center"
+                className="card-lift rounded-2xl border bg-card p-8 text-center shadow-card"
               >
                 <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
                   <v.icon className="h-7 w-7 text-primary" />
@@ -81,25 +74,23 @@ export default function About() {
 
       <section id="institutions" className="py-20 scroll-mt-20">
         <div className="container">
-          <h2 className="font-display text-3xl font-bold text-center mb-3">আমাদের প্রতিষ্ঠান</h2>
-          <p className="text-center text-muted-foreground mb-10">নবারুণ এডুকেশন ফ্যামিলির অধীনে তিনটি প্রতিষ্ঠান</p>
+          <SectionHeading title="আমাদের প্রতিষ্ঠান" subtitle="নবারুণ এডুকেশন ফ্যামিলির অধীনে তিনটি প্রতিষ্ঠান" />
           <InstitutionCards />
         </div>
       </section>
 
-      <section className="py-20 bg-muted/50">
+      <section className="bg-muted/40 py-20">
         <div className="container max-w-3xl">
-          <h2 className="font-display text-3xl font-bold text-center mb-8">সিস্টেম সম্পর্কে</h2>
+          <h2 className="mb-8 text-center font-display text-3xl font-bold">{about.systemTitle}</h2>
           <div className="space-y-4 text-muted-foreground">
-            <p>নবারুণ এডুকেশন ফ্যামিলির অধীনে <strong>নবারুণ পাবলিক স্কুল</strong>, <strong>বিপ্লব লোপা মেমোরিয়াল গার্লস স্কুল</strong>, এবং <strong>নবারুণ কোচিং সেন্টার</strong> অন্তর্ভুক্ত।</p>
-            <p>এই স্মার্ট অ্যালামনাই ও স্টুডেন্ট ইনফরমেশন ম্যানেজমেন্ট সিস্টেম (SASIMS) হলো একটি সম্পূর্ণ ডিজিটাল প্ল্যাটফর্ম যা অতীত ও বর্তমান ছাত্রদের মধ্যে সেতুবন্ধন তৈরি করতে ডিজাইন করা হয়েছে।</p>
-            <p>আমাদের সিস্টেম ছাত্রদের তাদের একাডেমিক রেকর্ড সংরক্ষণ, পেশাদার যাত্রা আপডেট এবং মাতৃ প্রতিষ্ঠানের সাথে সংযুক্ত থাকতে সহায়তা করে। প্রশাসকরা কার্যকরভাবে ছাত্রদের তথ্য পরিচালনা, রিপোর্ট তৈরি এবং প্রাক্তন ছাত্রদের সাফল্যের গল্প ট্র্যাক করতে পারেন।</p>
+            {paragraphs(about.systemText).map((p, i) => <p key={i}>{p}</p>)}
           </div>
         </div>
       </section>
 
       {/* Developer Credits */}
-      <section className="py-20">
+      {about.showDeveloper && (
+      <section id="developer" className="scroll-mt-20 py-20">
         <div className="container max-w-2xl">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <div className="text-center mb-8">
@@ -108,7 +99,7 @@ export default function About() {
               </div>
               <h2 className="font-display text-3xl font-bold">এই সাইটটি তৈরি করেছেন</h2>
             </div>
-            <Card className="shadow-elevated">
+            <Card className="shadow-elevated card-lift">
               <CardContent className="flex flex-col items-center text-center p-8">
                 <Avatar className="h-24 w-24 mb-4 border-4 border-primary/20">
                   {developer.photo ? <AvatarImage src={developer.photo} alt={developer.name} /> : null}
@@ -138,6 +129,7 @@ export default function About() {
           </motion.div>
         </div>
       </section>
+      )}
     </div>
   );
 }

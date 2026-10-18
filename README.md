@@ -56,9 +56,12 @@ SASIMS is a comprehensive **alumni management system** built for the Nabarun Edu
 | 💰 **Donations** | Donation campaigns and transaction tracking |
 | 💬 **Testimonials** | Alumni success stories |
 | 📖 **Memories** | Students share stories, photos and videos; admins approve before they go public |
+| 🎨 **Site Settings** | Admins edit all public text, contact details, social links, menu labels, footer and institution info from the panel — no code changes |
+| 🌗 **Dark / Light theme** | Header theme switch (light, dark, system) |
+| ✅ **Verified sign-ups** | Registration collects verification details; admins approve or reject (with a reason) before a student can edit a profile or post |
 | 🧰 **Admin Panel** | Responsive panel to create, edit, delete and approve everything, with CSV exports and a one-click JSON backup |
 | 📩 **Contact** | Public contact form with admin inbox |
-| 🛡️ **Role-Based Access** | Separate dashboards for Admin and Student |
+| 🛡️ **Role-Based Access** | App-style dashboards for Students (overview, profile editor, memories, notices, settings) and Admins; super admins also manage admin accounts with emails |
 
 ---
 

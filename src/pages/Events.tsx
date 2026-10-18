@@ -1,3 +1,5 @@
+import { usePageMeta } from "@/hooks/usePageMeta";
+import PageHero from "@/components/site/PageHero";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +32,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function Events() {
+  usePageMeta("ইভেন্ট", "আসন্ন ও বিগত অনুষ্ঠানসমূহ।");
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -119,11 +122,9 @@ export default function Events() {
   );
 
   return (
+    <>
+    <PageHero badge="ইভেন্ট" title="ইভেন্ট ক্যালেন্ডার" subtitle="নবারুণ এডুকেশন ফ্যামিলির আসন্ন ও বিগত অনুষ্ঠানসমূহ" />
     <div className="container py-12">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
-        <h1 className="font-display text-4xl font-bold mb-3">📅 ইভেন্ট ক্যালেন্ডার</h1>
-        <p className="text-muted-foreground max-w-xl mx-auto">নবারুণ এডুকেশন ফ্যামিলির আসন্ন ও বিগত অনুষ্ঠানসমূহ</p>
-      </motion.div>
 
       <div className="grid lg:grid-cols-[320px_1fr] gap-8">
         {/* Sidebar: Calendar + Filter */}
@@ -193,5 +194,6 @@ export default function Events() {
         </div>
       </div>
     </div>
+    </>
   );
 }

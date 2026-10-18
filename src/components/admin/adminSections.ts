@@ -1,12 +1,12 @@
 import {
   BarChart3, BookHeart, CalendarDays, HandCoins, Image as ImageIcon, LayoutDashboard, Megaphone,
-  MessageSquare, MessageSquareQuote, Users, type LucideIcon,
+  MessageSquare, MessageSquareQuote, Crown, Globe, Users, type LucideIcon,
 } from "lucide-react";
 import type { AdminCounts } from "@/hooks/useAdminData";
 
 export type SectionId =
   | "overview" | "students" | "memories" | "gallery" | "events"
-  | "notices" | "donations" | "testimonials" | "messages" | "analytics";
+  | "notices" | "donations" | "testimonials" | "messages" | "analytics" | "site" | "admins";
 
 export interface AdminSection {
   id: SectionId;
@@ -14,6 +14,8 @@ export interface AdminSection {
   description: string;
   icon: LucideIcon;
   badge?: keyof AdminCounts;
+  /** shown only to super admins */
+  superOnly?: boolean;
 }
 
 export const ADMIN_SECTIONS: AdminSection[] = [
@@ -27,4 +29,6 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { id: "testimonials", label: "মতামত", description: "ছাত্রদের মতামত", icon: MessageSquareQuote, badge: "pendingTestimonials" },
   { id: "messages", label: "বার্তা", description: "যোগাযোগ ফর্মের বার্তা", icon: MessageSquare, badge: "unreadMessages" },
   { id: "analytics", label: "পরিসংখ্যান", description: "চার্ট ও বিশ্লেষণ", icon: BarChart3 },
+  { id: "site", label: "সাইট সেটিংস", description: "ওয়েবসাইটের লেখা, যোগাযোগ, মেনু ও ফুটার", icon: Globe },
+  { id: "admins", label: "অ্যাডমিন ব্যবস্থাপনা", description: "অ্যাডমিন নিয়োগ ও অ্যাক্সেস (সুপার অ্যাডমিন)", icon: Crown, superOnly: true },
 ];

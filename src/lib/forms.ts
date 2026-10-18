@@ -11,3 +11,6 @@ export const yearField = z.string().transform(asciiDigits).pipe(z.string().trim(
 /** A positive number typed as text (Bengali digits allowed); empty is allowed only when `optional`. */
 export const positiveAmount = (message: string, optional = false) =>
   z.string().transform((v) => asciiDigits(v).trim()).refine((v) => (optional && v === "") || (v !== "" && Number(v) > 0), message);
+
+/** An http(s) link, or empty. */
+export const optionalUrl = z.string().trim().max(300).refine((v) => !v || /^https?:\/\//i.test(v), "https:// দিয়ে শুরু হওয়া লিংক দিন");

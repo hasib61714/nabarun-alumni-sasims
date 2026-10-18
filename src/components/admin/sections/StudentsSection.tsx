@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { CheckCircle2, Download, Eye, GraduationCap, Pencil, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, Download, Eye, GraduationCap, Pencil, Phone, Trash2, XCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,7 +18,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { useConfirm } from "@/components/common/use-confirm";
 import { attempt, useAdminRows, useRowMutations, type Row } from "@/hooks/useAdminData";
 import { downloadCSV, todayStamp, type CsvColumn } from "@/lib/export";
-import { yearField } from "@/lib/forms";
+import { optionalUrl, yearField } from "@/lib/forms";
 import { removeUserMemoryFolder } from "@/lib/memory-storage";
 import { formatDate, initialsOf } from "@/lib/format";
 import { safeHttpsUrl } from "@/lib/memories";
@@ -26,8 +26,12 @@ import { usePagination } from "@/hooks/usePagination";
 import { ActionButton, ListSkeleton, Pager, SearchInput, SectionHeader, Toolbar } from "../AdminCommon";
 
 type Student = Row<"student_profiles">;
+type Verification = Row<"student_verifications">;
+type Review = "approved" | "pending" | "rejected";
 
-const optionalUrl = z.string().trim().max(300).refine((v) => !v || /^https?:\/\//i.test(v), "https:// দিয়ে শুরু হওয়া লিংক দিন");
+const REVIEW_LABEL: Record<Review, string> = { approved: "অনুমোদিত", pending: "অপেক্ষমান", rejected: "প্রত্যাখ্যাত" };
+const reviewOf = (s: Student, v?: Verification): Review => (s.is_approved ? "approved" : v?.status === "rejected" ? "rejected" : "pending");
+
 const schema = z.object({
   full_name: z.string().trim().min(1, "নাম দিন").max(100),
   roll: z.string().trim().max(30),
@@ -115,7 +119,31 @@ function EditStudentDialog({ student, onClose }: { student: Student | null; onCl
   );
 }
 
-function StudentDetail({ student, onClose, onEdit }: { student: Student | null; onClose: () => void; onEdit: (s: Student) => void }) {
+function RejectDialog({ student, onClose }: { student: Student | null; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [note, setNote] = useState("");
+  useEffect(() => { if (student) setNote(""); }, [student]);
+  const reject = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("review_student", { p_user_id: student!.user_id, p_decision: "reject", p_note: note.trim() || null });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+  const submit = async () => { if (await attempt(reject.mutateAsync(), "আবেদন প্রত্যাখ্যান করা হয়েছে")) onClose(); };
+  return (
+    <FormDialog open={!!student} onOpenChange={(o) => !o && onClose()} title={`${student?.full_name || "এই আবেদন"} প্রত্যাখ্যান করবেন?`} description="কারণটি ছাত্র নিজের ড্যাশবোর্ডে দেখতে পাবেন এবং তথ্য সংশোধন করে আবার জমা দিতে পারবেন। অ্যাকাউন্ট মুছে যাবে না।" onSubmit={submit} submitLabel="প্রত্যাখ্যান করুন" loading={reject.isPending}>
+      <Field label="কারণ / মন্তব্য" hint="যেমন: ব্যাচ তালিকায় নাম মেলেনি, আরও তথ্য দিন।">
+        <Textarea rows={3} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
+      </Field>
+    </FormDialog>
+  );
+}
+
+function StudentDetail({ student, verification, onClose, onEdit, onApprove, onReject }: {
+  student: Student | null; verification?: Verification; onClose: () => void; onEdit: (s: Student) => void;
+  onApprove: (s: Student) => void; onReject: (s: Student) => void;
+}) {
   const rows: [string, string | number | null | undefined][] = student ? [
     ["রোল", student.roll], ["ব্যাচ", student.batch_year], ["বর্তমান পেশা", student.current_profession], ["উচ্চশিক্ষা", student.higher_study],
     ["অবস্থান", student.location], ["ফলাফল", student.result], ["অর্জন", student.achievement], ["যোগদান", formatDate(student.created_at)],
@@ -130,7 +158,7 @@ function StudentDetail({ student, onClose, onEdit }: { student: Student | null; 
                 <StudentAvatar student={student} className="h-14 w-14" />
                 <div className="text-left">
                   <DialogTitle className="font-display">{student.full_name || "নামহীন"}</DialogTitle>
-                  <DialogDescription asChild><div className="mt-1"><StatusBadge tone={student.is_approved ? "approved" : "pending"} label={student.is_approved ? "অনুমোদিত" : "অপেক্ষমান"} /></div></DialogDescription>
+                  <DialogDescription asChild><div className="mt-1"><StatusBadge tone={reviewOf(student, verification)} label={REVIEW_LABEL[reviewOf(student, verification)]} /></div></DialogDescription>
                 </div>
               </div>
             </DialogHeader>
@@ -142,7 +170,22 @@ function StudentDetail({ student, onClose, onEdit }: { student: Student | null; 
                 <div key={k} className="grid grid-cols-3 gap-3 py-2.5"><dt className="text-muted-foreground">{k}</dt><dd className="col-span-2 break-all"><a className="text-primary hover:underline" href={v} target="_blank" rel="noopener noreferrer">{v}</a></dd></div>
               ))}
             </dl>
-            <Button variant="outline" className="gap-2" onClick={() => { onClose(); onEdit(student); }}><Pencil className="h-4 w-4" /> সম্পাদনা করুন</Button>
+            {verification && (
+              <section className="rounded-xl border bg-muted/40 p-4">
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Phone className="h-4 w-4 text-primary" /> যাচাইয়ের তথ্য (শুধু অ্যাডমিন দেখেন)</h3>
+                <dl className="space-y-1.5 text-sm">
+                  {[["মোবাইল", verification.phone], ["প্রতিষ্ঠান", verification.institution], ["পরিচয়", verification.relation], ["যাচাইয়ের তথ্য", verification.note], ["আগের মন্তব্য", verification.review_note]].map(([k, v]) => v && (
+                    <div key={k} className="grid grid-cols-3 gap-3"><dt className="text-muted-foreground">{k}</dt><dd className="col-span-2 whitespace-pre-line break-words">{v}</dd></div>
+                  ))}
+                  {verification.phone && <a href={`tel:${verification.phone}`} className="inline-block pt-1 text-xs font-medium text-primary hover:underline">এই নম্বরে ফোন করুন</a>}
+                </dl>
+              </section>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {!student.is_approved && <Button className="gap-2" onClick={() => { onClose(); onApprove(student); }}><CheckCircle2 className="h-4 w-4" /> অনুমোদন দিন</Button>}
+              {!student.is_approved && <Button variant="outline" className="gap-2 text-destructive hover:text-destructive" onClick={() => { onClose(); onReject(student); }}><XCircle className="h-4 w-4" /> প্রত্যাখ্যান</Button>}
+              <Button variant="outline" className="gap-2" onClick={() => { onClose(); onEdit(student); }}><Pencil className="h-4 w-4" /> সম্পাদনা করুন</Button>
+            </div>
           </>
         )}
       </DialogContent>
@@ -154,6 +197,8 @@ export default function StudentsSection() {
   const confirm = useConfirm();
   const queryClient = useQueryClient();
   const { data: students = [], isLoading } = useAdminRows("student_profiles", "created_at");
+  const { data: verificationRows = [] } = useAdminRows("student_verifications", "created_at");
+  const verifications = useMemo(() => new Map(verificationRows.map((v) => [v.user_id, v])), [verificationRows]);
   const { update, updateMany } = useRowMutations("student_profiles", "user_id");
 
   const [search, setSearch] = useState("");
@@ -162,6 +207,15 @@ export default function StudentsSection() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<Student | null>(null);
   const [editing, setEditing] = useState<Student | null>(null);
+  const [rejecting, setRejecting] = useState<Student | null>(null);
+
+  const approve = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.rpc("review_student", { p_user_id: userId, p_decision: "approve", p_note: null });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
 
   const deleteUser = useMutation({
     mutationFn: async (userId: string) => {
@@ -174,16 +228,20 @@ export default function StudentsSection() {
   const batches = useMemo(() => [...new Set(students.map((s) => s.batch_year).filter((b): b is number => !!b))].sort((a, b) => b - a), [students]);
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return students.filter((s) =>
-      (!q || (s.full_name ?? "").toLowerCase().includes(q) || (s.roll ?? "").toLowerCase().includes(q)) &&
-      (batch === "all" || s.batch_year?.toString() === batch) &&
-      (status === "all" || (status === "approved" ? !!s.is_approved : !s.is_approved)),
-    );
-  }, [students, search, batch, status]);
+    // people waiting for a decision come first
+    const rank = (s: Student) => (reviewOf(s, verifications.get(s.user_id)) === "pending" ? 0 : 1);
+    return students
+      .filter((s) =>
+        (!q || (s.full_name ?? "").toLowerCase().includes(q) || (s.roll ?? "").toLowerCase().includes(q) || (verifications.get(s.user_id)?.phone ?? "").includes(q)) &&
+        (batch === "all" || s.batch_year?.toString() === batch) &&
+        (status === "all" || reviewOf(s, verifications.get(s.user_id)) === status),
+      )
+      .sort((a, b) => rank(a) - rank(b));
+  }, [students, search, batch, status, verifications]);
   const pager = usePagination(filtered, 15);
 
-  const setApproval = async (s: Student, approve: boolean) =>
-    attempt(update.mutateAsync({ id: s.user_id, values: { is_approved: approve } }), approve ? "ছাত্র অনুমোদিত হয়েছে" : "অনুমোদন প্রত্যাহার করা হয়েছে");
+  const approveStudent = (s: Student) => attempt(approve.mutateAsync(s.user_id), "ছাত্র অনুমোদিত হয়েছে");
+  const revokeApproval = (s: Student) => attempt(update.mutateAsync({ id: s.user_id, values: { is_approved: false } }), "অনুমোদন প্রত্যাহার করা হয়েছে");
 
   const selectedRows = filtered.filter((s) => selected.has(s.user_id));
   const bulkApproval = async (approve: boolean) => {
@@ -222,7 +280,8 @@ export default function StudentsSection() {
     { key: "roll", header: "রোল", cell: (s) => s.roll || "—" },
     { key: "batch", header: "ব্যাচ", cell: (s) => s.batch_year ?? "—" },
     { key: "job", header: "পেশা", className: "max-w-48 truncate", cell: (s) => s.current_profession || "—" },
-    { key: "status", header: "অবস্থা", cell: (s) => <StatusBadge tone={s.is_approved ? "approved" : "pending"} label={s.is_approved ? "অনুমোদিত" : "অপেক্ষমান"} /> },
+    { key: "status", header: "অবস্থা", cell: (s) => { const r = reviewOf(s, verifications.get(s.user_id)); return <StatusBadge tone={r} label={REVIEW_LABEL[r]} />; } },
+    { key: "phone", header: "মোবাইল", hideOnMobile: true, cell: (s) => verifications.get(s.user_id)?.phone || "—" },
     { key: "joined", header: "যোগদান", hideOnMobile: true, cell: (s) => formatDate(s.created_at) },
   ];
 
@@ -234,14 +293,14 @@ export default function StudentsSection() {
       />
 
       <Toolbar>
-        <SearchInput value={search} onChange={(v) => { setSearch(v); setSelected(new Set()); pager.setPage(1); }} placeholder="নাম বা রোল দিয়ে খুঁজুন…" />
+        <SearchInput value={search} onChange={(v) => { setSearch(v); setSelected(new Set()); pager.setPage(1); }} placeholder="নাম, রোল বা মোবাইল দিয়ে খুঁজুন…" />
         <Select value={batch} onValueChange={(v) => { setBatch(v); setSelected(new Set()); pager.setPage(1); }}>
           <SelectTrigger className="sm:w-36" aria-label="ব্যাচ"><SelectValue placeholder="ব্যাচ" /></SelectTrigger>
           <SelectContent><SelectItem value="all">সকল ব্যাচ</SelectItem>{batches.map((b) => <SelectItem key={b} value={String(b)}>{b}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={status} onValueChange={(v) => { setStatus(v); setSelected(new Set()); pager.setPage(1); }}>
           <SelectTrigger className="sm:w-40" aria-label="অবস্থা"><SelectValue placeholder="অবস্থা" /></SelectTrigger>
-          <SelectContent><SelectItem value="all">সব অবস্থা</SelectItem><SelectItem value="approved">অনুমোদিত</SelectItem><SelectItem value="pending">অপেক্ষমান</SelectItem></SelectContent>
+          <SelectContent><SelectItem value="all">সব অবস্থা</SelectItem><SelectItem value="pending">অপেক্ষমান</SelectItem><SelectItem value="approved">অনুমোদিত</SelectItem><SelectItem value="rejected">প্রত্যাখ্যাত</SelectItem></SelectContent>
         </Select>
       </Toolbar>
 
@@ -267,8 +326,11 @@ export default function StudentsSection() {
             actions={(s) => (
               <>
                 {s.is_approved
-                  ? <ActionButton icon={XCircle} label="অনুমোদন প্রত্যাহার" onClick={() => setApproval(s, false)} />
-                  : <ActionButton icon={CheckCircle2} label="অনুমোদন দিন" tone="success" onClick={() => setApproval(s, true)} />}
+                  ? <ActionButton icon={XCircle} label="অনুমোদন প্রত্যাহার" onClick={() => revokeApproval(s)} />
+                  : <>
+                      <ActionButton icon={CheckCircle2} label="অনুমোদন দিন" tone="success" onClick={() => approveStudent(s)} />
+                      <ActionButton icon={XCircle} label="প্রত্যাখ্যান" tone="danger" onClick={() => setRejecting(s)} />
+                    </>}
                 <ActionButton icon={Eye} label="বিস্তারিত" onClick={() => setViewing(s)} />
                 <ActionButton icon={Pencil} label="সম্পাদনা" onClick={() => setEditing(s)} />
                 <ActionButton icon={Trash2} label="মুছুন" tone="danger" onClick={() => remove(s)} />
@@ -279,7 +341,11 @@ export default function StudentsSection() {
         </>
       )}
 
-      <StudentDetail student={viewing} onClose={() => setViewing(null)} onEdit={(s) => setEditing(s)} />
+      <StudentDetail
+        student={viewing} verification={viewing ? verifications.get(viewing.user_id) : undefined} onClose={() => setViewing(null)}
+        onEdit={(s) => setEditing(s)} onApprove={(s) => void approveStudent(s)} onReject={(s) => setRejecting(s)}
+      />
+      <RejectDialog student={rejecting} onClose={() => setRejecting(null)} />
       <EditStudentDialog student={editing} onClose={() => setEditing(null)} />
     </div>
   );

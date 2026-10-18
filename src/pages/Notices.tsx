@@ -1,4 +1,6 @@
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { useEffect, useState } from "react";
+import PageHero from "@/components/site/PageHero";
 import { motion } from "framer-motion";
 import { Bell, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +14,7 @@ interface Notice {
 }
 
 export default function Notices() {
+  usePageMeta("নোটিশ", "সর্বশেষ নোটিশ ও ঘোষণা।");
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,18 +43,7 @@ export default function Notices() {
 
   return (
     <div>
-      <section className="bg-hero-gradient py-20">
-        <div className="container">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-1.5 text-sm text-primary-foreground/90 mb-4">
-              <Bell className="h-4 w-4" />
-              নোটিশ বোর্ড
-            </div>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">নোটিশ সমূহ</h1>
-            <p className="text-primary-foreground/80 text-lg">নবারুণ এডুকেশন ফ্যামিলির সর্বশেষ নোটিশ ও ঘোষণা।</p>
-          </motion.div>
-        </div>
-      </section>
+      <PageHero badge="নোটিশ বোর্ড" title="নোটিশ সমূহ" subtitle="নবারুণ এডুকেশন ফ্যামিলির সর্বশেষ নোটিশ ও ঘোষণা।" />
 
       <section className="py-16">
         <div className="container max-w-3xl">

@@ -1,5 +1,4 @@
-import { motion } from "framer-motion";
-import { Mail, Phone, MapPin, Send, Globe } from "lucide-react";
+import { Mail, Phone, MapPin, Send, Globe, Clock, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -7,15 +6,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-
-const contactInfo = [
-  { icon: Mail, label: "ইমেইল", value: "info.nabarun@gmail.com", href: "mailto:info.nabarun@gmail.com" },
-  { icon: Phone, label: "ফোন", value: "+৮৮০ ১৭৪১ ৯১৯৪৬২", href: "tel:+8801741919462" },
-  { icon: MapPin, label: "ঠিকানা", value: "নবারুণ এডুকেশন ফ্যামিলি, বাংলাদেশ", href: null },
-  { icon: Globe, label: "ওয়েবসাইট", value: "www.nabarun.com.bd", href: "https://www.nabarun.com.bd" },
-];
+import PageHero from "@/components/site/PageHero";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { isExternal, safeHref, telHref } from "@/lib/siteSettings";
 
 export default function Contact() {
+  const { settings } = useSiteSettings();
+  const { general } = settings;
+  usePageMeta("যোগাযোগ", "প্রশ্ন, পরামর্শ বা সহযোগিতার জন্য আমাদের সাথে যোগাযোগ করুন।");
+  const website = safeHref(general.website);
+  const mapUrl = safeHref(general.mapUrl);
+  const contactInfo = [
+    general.email && { icon: Mail, label: "ইমেইল", value: general.email, href: `mailto:${general.email}` },
+    general.phoneDisplay && { icon: Phone, label: "ফোন", value: general.phoneDisplay, href: telHref(general.phone || general.phoneDisplay) },
+    general.address && { icon: MapPin, label: "ঠিকানা", value: general.address, href: mapUrl || null },
+    website && { icon: Globe, label: "ওয়েবসাইট", value: website.replace(/^https?:\/\//i, "").replace(/\/$/, ""), href: website },
+    general.workingHours && { icon: Clock, label: "সময়সূচি", value: general.workingHours, href: null },
+  ].filter(Boolean) as { icon: typeof Mail; label: string; value: string; href: string | null }[];
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
 
@@ -34,21 +42,14 @@ export default function Contact() {
 
   return (
     <div>
-      <section className="bg-hero-gradient py-20">
-        <div className="container">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl">
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">যোগাযোগ করুন</h1>
-            <p className="text-primary-foreground/80 text-lg">প্রশ্ন আছে? আমরা আপনার কথা শুনতে চাই।</p>
-          </motion.div>
-        </div>
-      </section>
+      <PageHero title="যোগাযোগ করুন" subtitle="প্রশ্ন আছে? আমরা আপনার কথা শুনতে চাই।" />
 
       <section className="py-16">
         <div className="container max-w-5xl">
           <div className="grid md:grid-cols-5 gap-8">
             <div className="md:col-span-2 space-y-4">
               {contactInfo.map((c) => (
-                <Card key={c.label} className="shadow-card">
+                <Card key={c.label} className="card-lift shadow-card">
                   <CardContent className="flex items-center gap-4 p-5">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       <c.icon className="h-5 w-5 text-primary" />
@@ -56,8 +57,8 @@ export default function Contact() {
                     <div>
                       <p className="text-sm text-muted-foreground">{c.label}</p>
                       {c.href ? (
-                        <a href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" className="font-medium text-sm text-primary hover:underline">
-                          {c.value}
+                        <a href={c.href} {...(isExternal(c.href) ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="inline-flex items-center gap-1 break-all text-sm font-medium text-primary hover:underline">
+                          {c.value}{isExternal(c.href) && <ExternalLink className="h-3 w-3 shrink-0" />}
                         </a>
                       ) : (
                         <p className="font-medium text-sm">{c.value}</p>

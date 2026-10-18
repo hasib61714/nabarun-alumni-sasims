@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { MessageSquareQuote, Star } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { MessageSquareQuote, Quote } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
+import { initialsOf } from "@/lib/format";
 
 interface Testimonial {
   id: string;
@@ -14,101 +14,60 @@ interface Testimonial {
   photo: string | null;
 }
 
+/** Approved testimonials only; the section stays hidden until there are real ones. */
 export default function TestimonialsSection() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
 
   useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
-        .from("testimonials")
-        .select("id, name, batch_year, profession, message, photo")
-        .eq("is_approved", true)
-        .order("created_at", { ascending: false })
-        .limit(6);
-      if (data) setTestimonials(data);
-    };
-    load();
+    let active = true;
+    supabase
+      .from("testimonials")
+      .select("id, name, batch_year, profession, message, photo")
+      .eq("is_approved", true)
+      .order("created_at", { ascending: false })
+      .limit(6)
+      .then(({ data }) => { if (active && data) setTestimonials(data); });
+    return () => { active = false; };
   }, []);
 
-  // Show static fallback if no DB testimonials yet
-  const displayTestimonials: Testimonial[] = testimonials.length > 0 ? testimonials : [
-    {
-      id: "1",
-      name: "রাহাত হাসান",
-      batch_year: 2015,
-      profession: "সফটওয়্যার ইঞ্জিনিয়ার",
-      message: "নবারুণ আমার জীবনের ভিত্তি গড়ে দিয়েছে। এখানকার শিক্ষা ও মূল্যবোধ আমাকে আজও পথ দেখায়।",
-      photo: null,
-    },
-    {
-      id: "2",
-      name: "ফাতেমা আক্তার",
-      batch_year: 2018,
-      profession: "চিকিৎসক",
-      message: "নবারুণ পরিবারের অংশ হতে পেরে গর্বিত। এখানের শিক্ষকদের অনুপ্রেরণা আমাকে ডাক্তার হতে সাহায্য করেছে।",
-      photo: null,
-    },
-    {
-      id: "3",
-      name: "আবদুল করিম",
-      batch_year: 2012,
-      profession: "ব্যাংকার",
-      message: "নবারুণের শৃঙ্খলা ও টিমওয়ার্কের শিক্ষা আমার পেশাগত জীবনে অমূল্য সম্পদ।",
-      photo: null,
-    },
-  ];
+  if (testimonials.length === 0) return null;
 
   return (
-    <section className="py-20 bg-muted/30">
+    <section className="bg-muted/30 py-20">
       <div className="container">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground mb-4">
+        <div className="mx-auto mb-12 max-w-2xl text-center">
+          <span className="mb-4 inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground">
             <MessageSquareQuote className="h-4 w-4" /> প্রাক্তন ছাত্রদের মতামত
-          </div>
-          <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">তারা কী বলেন</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            নবারুণ পরিবারের সদস্যদের অভিজ্ঞতা ও অনুভূতি।
-          </p>
+          </span>
+          <h2 className="mb-3 font-display text-3xl font-bold md:text-4xl">তারা কী বলেন</h2>
+          <p className="text-muted-foreground">নবারুণ পরিবারের সদস্যদের অভিজ্ঞতা ও অনুভূতি।</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayTestimonials.map((t, i) => (
-            <motion.div
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {testimonials.map((t, i) => (
+            <motion.figure
               key={t.id}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
+              transition={{ delay: i * 0.08 }}
+              className="card-lift relative flex h-full flex-col rounded-2xl border bg-card p-6 shadow-card"
             >
-              <Card className="h-full shadow-card hover:shadow-elevated transition-shadow">
-                <CardContent className="pt-6 pb-5">
-                  <div className="flex gap-1 mb-3">
-                    {[...Array(5)].map((_, si) => (
-                      <Star key={si} className="h-4 w-4 fill-accent text-accent" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed italic">
-                    &ldquo;{t.message}&rdquo;
+              <Quote className="mb-3 h-8 w-8 text-primary/30" aria-hidden />
+              <blockquote className="mb-5 flex-1 text-sm leading-relaxed text-muted-foreground">{t.message}</blockquote>
+              <figcaption className="flex items-center gap-3 border-t pt-4">
+                <Avatar className="h-10 w-10">
+                  {t.photo ? <AvatarImage src={t.photo} alt="" /> : null}
+                  <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">{initialsOf(t.name)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-semibold">{t.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {[t.profession, t.batch_year ? `ব্যাচ ${t.batch_year}` : null].filter(Boolean).join(" • ")}
                   </p>
-                  <div className="flex items-center gap-3 pt-3 border-t">
-                    <Avatar className="h-10 w-10">
-                      {t.photo ? <AvatarImage src={t.photo} /> : null}
-                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
-                        {t.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-semibold text-sm">{t.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {t.profession && <span>{t.profession}</span>}
-                        {t.profession && t.batch_year && <span> • </span>}
-                        {t.batch_year && <span>ব্যাচ {t.batch_year}</span>}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                </div>
+              </figcaption>
+            </motion.figure>
           ))}
         </div>
       </div>

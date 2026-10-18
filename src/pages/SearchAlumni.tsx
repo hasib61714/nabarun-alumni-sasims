@@ -1,4 +1,7 @@
+import { safeHttpsUrl } from "@/lib/memories";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { useEffect, useState } from "react";
+import PageHero from "@/components/site/PageHero";
 import { motion } from "framer-motion";
 import { Search, Users, Linkedin, Facebook } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -19,6 +22,7 @@ interface AlumniProfile {
 }
 
 export default function SearchAlumni() {
+  usePageMeta("অনুসন্ধান", "নাম, রোল, পেশা বা ব্যাচ দিয়ে প্রাক্তন ছাত্র খুঁজুন।");
   const [alumni, setAlumni] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -56,18 +60,7 @@ export default function SearchAlumni() {
 
   return (
     <div>
-      <section className="bg-hero-gradient py-20">
-        <div className="container">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-1.5 text-sm text-primary-foreground/90 mb-4">
-              <Search className="h-4 w-4" />
-              অনুসন্ধান
-            </div>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">প্রাক্তন ছাত্র খুঁজুন</h1>
-            <p className="text-primary-foreground/80 text-lg">নাম, রোল, পেশা বা ব্যাচ দিয়ে অনুসন্ধান করুন।</p>
-          </motion.div>
-        </div>
-      </section>
+      <PageHero badge="অনুসন্ধান" title="প্রাক্তন ছাত্র খুঁজুন" subtitle="নাম, রোল, পেশা বা ব্যাচ দিয়ে অনুসন্ধান করুন।" />
 
       <section className="py-12">
         <div className="container max-w-4xl">
@@ -107,7 +100,7 @@ export default function SearchAlumni() {
                     <Card className="shadow-card hover:shadow-elevated transition-shadow">
                       <CardContent className="flex items-center gap-4 p-5">
                         <Avatar className="h-12 w-12">
-                          {a.photo ? <AvatarImage src={a.photo} /> : null}
+                          {safeHttpsUrl(a.photo) ? <AvatarImage src={safeHttpsUrl(a.photo) ?? undefined} alt={a.full_name ?? ""} /> : null}
                           <AvatarFallback className="bg-primary/10 text-primary font-semibold">{getInitials(a.full_name)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
@@ -117,11 +110,11 @@ export default function SearchAlumni() {
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="text-sm font-medium text-primary hidden sm:block">{a.current_profession || "—"}</span>
-                          {a.linkedin_link && (
-                            <a href={a.linkedin_link} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Linkedin className="h-4 w-4" /></a>
+                          {safeHttpsUrl(a.linkedin_link) && (
+                            <a href={safeHttpsUrl(a.linkedin_link) ?? undefined} aria-label={`${a.full_name ?? "প্রাক্তন ছাত্র"} — LinkedIn`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Linkedin className="h-4 w-4" /></a>
                           )}
-                          {a.facebook_link && (
-                            <a href={a.facebook_link} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Facebook className="h-4 w-4" /></a>
+                          {safeHttpsUrl(a.facebook_link) && (
+                            <a href={safeHttpsUrl(a.facebook_link) ?? undefined} aria-label={`${a.full_name ?? "প্রাক্তন ছাত্র"} — Facebook`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Facebook className="h-4 w-4" /></a>
                           )}
                         </div>
                       </CardContent>

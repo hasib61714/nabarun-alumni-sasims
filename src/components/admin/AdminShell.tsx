@@ -1,8 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Crown, Home, LogOut, Menu } from "lucide-react";
+import { Home, KeyRound, LogOut, Menu } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ChangePasswordDialog } from "@/components/common/ChangePasswordDialog";
+import { initialsOf } from "@/lib/format";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import type { AdminCounts } from "@/hooks/useAdminData";
@@ -15,22 +18,26 @@ interface Props {
   onSectionChange: (id: SectionId) => void;
   counts?: AdminCounts;
   isSuperAdmin: boolean;
+  adminName: string;
   onLogout: () => void;
   children: ReactNode;
 }
 
-function NavContent({ section, onSectionChange, counts, isSuperAdmin, onLogout }: Omit<Props, "children">) {
+function NavContent({ section, onSectionChange, counts, isSuperAdmin, adminName, onLogout, onChangePassword }: Omit<Props, "children"> & { onChangePassword: () => void }) {
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="px-4 pb-3 pt-5">
         <Link to="/" className="block rounded-xl bg-white p-2.5 shadow-sm">
           <img src={nabarunLogo} alt="Nabarun Education Family" className="mx-auto h-9 w-auto" />
         </Link>
-        <p className="mt-3 px-1 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/70">অ্যাডমিন প্যানেল</p>
+        <div className="mt-3 flex items-center gap-3 rounded-xl bg-sidebar-accent/60 p-2.5">
+          <Avatar className="h-9 w-9 border border-white/30"><AvatarFallback className="bg-white/20 text-xs font-semibold text-white">{initialsOf(adminName, "A")}</AvatarFallback></Avatar>
+          <div className="min-w-0"><p className="truncate text-sm font-semibold">{adminName}</p><p className="truncate text-xs text-sidebar-foreground/95">{isSuperAdmin ? "সুপার অ্যাডমিন" : "অ্যাডমিন"}</p></div>
+        </div>
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4" aria-label="অ্যাডমিন মেনু">
-        {ADMIN_SECTIONS.map((s) => {
+        {ADMIN_SECTIONS.filter((s) => !s.superOnly || isSuperAdmin).map((s) => {
           const active = s.id === section;
           const badge = s.badge ? counts?.[s.badge] : undefined;
           return (
@@ -50,11 +57,9 @@ function NavContent({ section, onSectionChange, counts, isSuperAdmin, onLogout }
       </nav>
 
       <div className="space-y-1 border-t border-sidebar-border p-3">
-        {isSuperAdmin && (
-          <Button asChild variant="ghost" className="w-full justify-start gap-3 text-amber-200 hover:bg-sidebar-accent hover:text-amber-100">
-            <Link to="/super-admin"><Crown className="h-[18px] w-[18px]" /> সুপার প্যানেল</Link>
-          </Button>
-        )}
+        <Button variant="ghost" onClick={onChangePassword} className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground">
+          <KeyRound className="h-[18px] w-[18px]" /> পাসওয়ার্ড পরিবর্তন
+        </Button>
         <Button asChild variant="ghost" className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground">
           <Link to="/"><Home className="h-[18px] w-[18px]" /> ওয়েবসাইট দেখুন</Link>
         </Button>
@@ -68,6 +73,7 @@ function NavContent({ section, onSectionChange, counts, isSuperAdmin, onLogout }
 
 export function AdminShell({ children, ...nav }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const current = ADMIN_SECTIONS.find((s) => s.id === nav.section) ?? ADMIN_SECTIONS[0];
   const pendingTotal = nav.counts ? nav.counts.pendingStudents + nav.counts.pendingMemories + nav.counts.pendingTestimonials + nav.counts.pendingDonations + nav.counts.unreadMessages : 0;
 
@@ -76,14 +82,14 @@ export function AdminShell({ children, ...nav }: Props) {
   return (
     <div className="min-h-screen bg-muted/30">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 lg:block">
-        <NavContent {...nav} onSectionChange={select} />
+        <NavContent {...nav} onSectionChange={select} onChangePassword={() => { setDrawerOpen(false); setPasswordOpen(true); }} />
       </aside>
 
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent side="left" className="w-72 border-0 p-0 [&>button]:text-sidebar-foreground">
           <SheetTitle className="sr-only">অ্যাডমিন মেনু</SheetTitle>
           <SheetDescription className="sr-only">অ্যাডমিন প্যানেলের বিভাগসমূহ</SheetDescription>
-          <NavContent {...nav} onSectionChange={select} />
+          <NavContent {...nav} onSectionChange={select} onChangePassword={() => { setDrawerOpen(false); setPasswordOpen(true); }} />
         </SheetContent>
       </Sheet>
 
@@ -110,6 +116,7 @@ export function AdminShell({ children, ...nav }: Props) {
           </AnimatePresence>
         </main>
       </div>
+      <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
     </div>
   );
 }

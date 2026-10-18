@@ -2,8 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "next-themes";
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import PublicLayout from "./components/PublicLayout";
 import Index from "./pages/Index";
 import About from "./pages/About";
@@ -24,10 +25,10 @@ import Memories from "./pages/Memories";
 import MemoryDetail from "./pages/MemoryDetail";
 import ScrollToTop from "./components/ScrollToTop";
 import { ConfirmProvider } from "./components/common/ConfirmDialog";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
 const StudentDashboard = lazy(() => import("./pages/student/Dashboard"));
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
-const SuperAdminDashboard = lazy(() => import("./pages/admin/SuperAdminDashboard"));
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,8 @@ const PageLoader = () => (
 );
 
 const App = () => (
+  <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+  <ErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -60,6 +63,7 @@ const App = () => (
               <Route path="/directory" element={<AlumniDirectory />} />
               <Route path="/memories" element={<Memories />} />
               <Route path="/memories/:id" element={<MemoryDetail />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -67,14 +71,15 @@ const App = () => (
             <Route path="/dashboard" element={<DashboardRouter />} />
             <Route path="/student/dashboard" element={<StudentDashboard />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/super-admin" element={<SuperAdminDashboard />} />
-            <Route path="*" element={<NotFound />} />
+            <Route path="/super-admin" element={<Navigate to="/admin/dashboard?tab=admins" replace />} />
           </Routes>
           </Suspense>
         </BrowserRouter>
       </ConfirmProvider>
     </TooltipProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
+  </ThemeProvider>
 );
 
 export default App;

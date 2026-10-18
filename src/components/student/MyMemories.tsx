@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { BookHeart, ExternalLink, Pencil, PenLine, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -12,8 +12,9 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { useConfirm } from "@/components/common/use-confirm";
 import { MemoryFormDialog } from "@/components/memories/MemoryFormDialog";
 import { MediaThumb } from "@/components/memories/MemoryMedia";
+import { useMyMemories } from "@/hooks/useMemories";
 import { excerpt, formatDate } from "@/lib/format";
-import { coverOf, STATUS_LABEL, toMemory, type Memory } from "@/lib/memories";
+import { coverOf, STATUS_LABEL, type Memory } from "@/lib/memories";
 import { removeMemoryFiles } from "@/lib/memory-storage";
 
 interface Props {
@@ -29,14 +30,7 @@ export default function MyMemories({ userId, authorName, defaultBatch }: Props) 
   const [editing, setEditing] = useState<Memory | null>(null);
   const [formOpen, setFormOpen] = useState(false);
 
-  const { data: memories = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ["memories", "mine", userId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("memories").select("*").eq("user_id", userId).order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []).map(toMemory);
-    },
-  });
+  const { data: memories = [], isLoading, isError, refetch } = useMyMemories(userId);
 
   // "?new=1" (from the public pages) opens the editor straight away
   useEffect(() => {

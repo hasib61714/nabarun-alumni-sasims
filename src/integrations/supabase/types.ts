@@ -340,6 +340,69 @@ export type Database = {
         }
         Relationships: []
       }
+      site_settings: {
+        Row: {
+          key: string
+          value: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          key: string
+          value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          key?: string
+          value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      student_verifications: {
+        Row: {
+          user_id: string
+          phone: string | null
+          institution: string | null
+          relation: string | null
+          note: string | null
+          status: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          phone?: string | null
+          institution?: string | null
+          relation?: string | null
+          note?: string | null
+          status?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          phone?: string | null
+          institution?: string | null
+          relation?: string | null
+          note?: string | null
+          status?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       testimonials: {
         Row: {
           batch_year: number | null
@@ -399,9 +462,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          email: string
+          full_name: string | null
+          roles: string[]
+          created_at: string
+          last_sign_in_at: string | null
+        }[]
+      }
       admin_delete_user: {
         Args: { target_user_id: string }
         Returns: undefined
+      }
+      review_student: {
+        Args: { p_user_id: string; p_decision: string; p_note?: string | null }
+        Returns: undefined
+      }
+      is_approved_student: {
+        Args: { _user_id: string }
+        Returns: boolean
       }
       get_donation_totals: {
         Args: Record<PropertyKey, never>

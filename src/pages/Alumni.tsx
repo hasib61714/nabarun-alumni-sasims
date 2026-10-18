@@ -1,4 +1,7 @@
+import { safeHttpsUrl } from "@/lib/memories";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { useEffect, useState } from "react";
+import PageHero from "@/components/site/PageHero";
 import { motion } from "framer-motion";
 import { GraduationCap, Users, Linkedin, Facebook, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +22,7 @@ interface AlumniProfile {
 }
 
 export default function Alumni() {
+  usePageMeta("প্রাক্তন ছাত্র", "ব্যাচ অনুযায়ী অনুমোদিত প্রাক্তন ছাত্রদের প্রোফাইল।");
   const [alumni, setAlumni] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,18 +48,7 @@ export default function Alumni() {
 
   return (
     <div>
-      <section className="bg-hero-gradient py-20">
-        <div className="container">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-1.5 text-sm text-primary-foreground/90 mb-4">
-              <Users className="h-4 w-4" />
-              আমাদের প্রাক্তন ছাত্র
-            </div>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">প্রাক্তন ছাত্র তালিকা</h1>
-            <p className="text-primary-foreground/80 text-lg">ব্যাচ অনুযায়ী আমাদের অনুমোদিত প্রাক্তন ছাত্রদের প্রোফাইল দেখুন।</p>
-          </motion.div>
-        </div>
-      </section>
+      <PageHero badge="আমাদের প্রাক্তন ছাত্র" title="প্রাক্তন ছাত্র তালিকা" subtitle="ব্যাচ অনুযায়ী আমাদের অনুমোদিত প্রাক্তন ছাত্রদের প্রোফাইল দেখুন।" />
 
       <section className="py-16">
         <div className="container">
@@ -89,7 +82,7 @@ export default function Alumni() {
                           <CardContent className="p-5">
                             <div className="flex items-center gap-4 mb-3">
                               <Avatar className="h-14 w-14">
-                                {a.photo ? <AvatarImage src={a.photo} /> : null}
+                                {safeHttpsUrl(a.photo) ? <AvatarImage src={safeHttpsUrl(a.photo) ?? undefined} alt={a.full_name ?? ""} /> : null}
                                 <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                                   {getInitials(a.full_name)}
                                 </AvatarFallback>
@@ -109,13 +102,13 @@ export default function Alumni() {
                               </div>
                             )}
                             <div className="flex gap-2">
-                              {a.linkedin_link && (
-                                <a href={a.linkedin_link} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                              {safeHttpsUrl(a.linkedin_link) && (
+                                <a href={safeHttpsUrl(a.linkedin_link) ?? undefined} aria-label={`${a.full_name ?? "প্রাক্তন ছাত্র"} — LinkedIn`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                                   <Linkedin className="h-4 w-4" />
                                 </a>
                               )}
-                              {a.facebook_link && (
-                                <a href={a.facebook_link} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                              {safeHttpsUrl(a.facebook_link) && (
+                                <a href={safeHttpsUrl(a.facebook_link) ?? undefined} aria-label={`${a.full_name ?? "প্রাক্তন ছাত্র"} — Facebook`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                                   <Facebook className="h-4 w-4" />
                                 </a>
                               )}
